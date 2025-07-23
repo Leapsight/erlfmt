@@ -615,9 +615,14 @@ format_nodes_loop([], _PrintWidth) ->
     [].
 
 maybe_empty_line(Node, Next) ->
-    case has_empty_line_between(Node, Next) of
-        true -> "\n";
-        false -> ""
+    case should_add_extra_newlines(Node, Next) of
+        two -> "\n\n";  % Always add two newlines
+        one -> "\n";    % Always add one newline
+        zero ->
+            case has_empty_line_between(Node, Next) of
+                true -> "\n";
+                false -> ""
+            end
     end.
 
 -spec format_node(erlfmt_parse:abstract_node(), pos_integer()) -> unicode:chardata().
@@ -629,6 +634,21 @@ format_node(Node, PrintWidth) ->
 
 has_empty_line_between(Left, Right) ->
     erlfmt_scan:get_end_line(Left) + 1 < erlfmt_scan:get_line(Right).
+
+%% Determine if we should add extra newlines between nodes based on their types
+should_add_extra_newlines(Node, Next) ->
+    case {node_type(Node), node_type(Next)} of
+        {spec, function} -> one;  % Add one newline between spec and function
+        {function, spec} -> two;  % Add two newlines between function and next spec
+        _ -> zero
+    end.
+
+%% Get the type of a node for spacing decisions
+node_type({attribute, _, spec, _}) -> spec;
+node_type({attribute, _, callback, _}) -> spec;  % Treat callback same as spec
+node_type({function, _, _}) -> function;
+node_type({raw_string, _, _}) -> raw_string;
+node_type(_) -> other.
 
 verify_nodes(FileName, Nodes, Formatted) ->
     Flattened = unicode:characters_to_list(Formatted),

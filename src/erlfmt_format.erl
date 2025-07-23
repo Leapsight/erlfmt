@@ -770,7 +770,7 @@ fold_clauses_to_algebra([Clause]) ->
     clause_expr_to_algebra(Clause);
 fold_clauses_to_algebra([Clause | Clauses]) ->
     ClauseD = clause_expr_to_algebra(Clause),
-    line(concat(ClauseD, <<";">>), fold_clauses_to_algebra(Clauses)).
+    concat([concat(ClauseD, <<";">>), line(2), fold_clauses_to_algebra(Clauses)]).
 
 clause_has_break({clause, _Meta, empty, Guards, [Body | _]}) ->
     has_break_between(Guards, Body);
