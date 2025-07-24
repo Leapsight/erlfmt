@@ -1222,10 +1222,10 @@ combine_pre_comments(Comments, Meta, Doc) ->
         erlfmt_scan:get_end_line(lists:last(Comments)) + 1 <
             erlfmt_scan:get_inner_line(Meta)
     of
-        true when HasBanner -> concat(comments_to_algebra(Comments), line(3), Doc);
-        true -> concat(comments_to_algebra(Comments), line(2), Doc);
-        false when HasBanner -> concat(comments_to_algebra(Comments), line(3), Doc);
-        false -> concat(comments_to_algebra(Comments), line(), Doc)
+        true when HasBanner -> concat(concat(concat(line(3), comments_to_algebra(Comments)), line(3)), Doc);
+        true -> concat(comments_to_algebra(Comments), concat(line(2), Doc));
+        false when HasBanner -> concat(concat(concat(line(3), comments_to_algebra(Comments)), line(3)), Doc);
+        false -> concat(comments_to_algebra(Comments), concat(line(), Doc))
     end.
 
 combine_post_comments([], _Meta, Doc) ->
@@ -1234,10 +1234,10 @@ combine_post_comments([], _Meta, Doc) ->
 combine_post_comments([Comment | _] = Comments, Meta, Doc) ->
     HasBanner = lists:any(fun is_comment_banner/1, Comments),
     case erlfmt_scan:get_inner_end_line(Meta) + 1 < erlfmt_scan:get_line(Comment) of
-        true when HasBanner -> concat(Doc, line(3), comments_to_algebra(Comments));
-        true -> concat(Doc, line(2), comments_to_algebra(Comments));
-        false when HasBanner -> concat(Doc, line(3), comments_to_algebra(Comments));
-        false -> concat(Doc, line(), comments_to_algebra(Comments))
+        true when HasBanner -> concat(concat(concat(Doc, line(3)), comments_to_algebra(Comments)), line(3));
+        true -> concat(Doc, concat(line(2), comments_to_algebra(Comments)));
+        false when HasBanner -> concat(concat(concat(Doc, line(3)), comments_to_algebra(Comments)), line(3));
+        false -> concat(Doc, concat(line(), comments_to_algebra(Comments)))
     end.
 
 comments_to_algebra(Comments) ->
