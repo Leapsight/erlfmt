@@ -53,7 +53,7 @@ to_algebra({shebang, Meta, String}) ->
     combine_comments(Meta, Doc);
 
 to_algebra({function, Meta, Clauses}) ->
-    Doc = clauses_to_algebra(Clauses),
+    Doc = function_clauses_to_algebra(Clauses),
     combine_comments_with_dot(Meta, Doc);
 
 to_algebra({attribute, Meta, Name, no_parens}) ->
@@ -923,12 +923,41 @@ clauses_to_algebra([Clause | _] = Clauses) ->
     HasBreak = clause_has_break(Clause),
     group(concat(maybe_force_breaks(HasBreak), ClausesD)).
 
+%% Special handling for function clauses with newline rules
+function_clauses_to_algebra([SingleClause]) ->
+    %% Single clause functions always get a newline after ->
+    ClauseD = clause_expr_to_algebra_with_break(SingleClause, true),
+    group(concat(force_breaks(), ClauseD));
+function_clauses_to_algebra(Clauses) ->
+    %% Multi-clause functions: keep compact unless any has a break
+    AnyBreak = lists:any(fun clause_has_break/1, Clauses),
+    ClausesD = fold_function_clauses_to_algebra(Clauses, AnyBreak),
+    group(concat(maybe_force_breaks(AnyBreak), ClausesD)).
+
 fold_clauses_to_algebra([Clause]) ->
     clause_expr_to_algebra(Clause);
 
 fold_clauses_to_algebra([Clause | Clauses]) ->
     ClauseD = clause_expr_to_algebra(Clause),
     concat([concat(ClauseD, <<";">>), line(2), fold_clauses_to_algebra(Clauses)]).
+
+%% Function clause folding with optional forced breaks
+fold_function_clauses_to_algebra([Clause], ForceBreak) ->
+    clause_expr_to_algebra_with_break(Clause, ForceBreak);
+
+fold_function_clauses_to_algebra([Clause | Clauses], ForceBreak) ->
+    ClauseD = clause_expr_to_algebra_with_break(Clause, ForceBreak),
+    concat([concat(ClauseD, <<";">>), line(2), fold_function_clauses_to_algebra(Clauses, ForceBreak)]).
+
+%% Clause formatting with optional forced break after ->
+clause_expr_to_algebra_with_break({macro_call, Meta, _, _} = Expr, _ForceBreak) ->
+    ExprD = do_expr_to_algebra(Expr),
+    combine_comments_no_force(Meta, ExprD);
+
+clause_expr_to_algebra_with_break(Clause, ForceBreak) ->
+    Meta = element(2, Clause),
+    ClauseD = clause_to_algebra_with_break(Clause, ForceBreak),
+    combine_comments_no_force(Meta, ClauseD).
 
 clause_has_break({clause, _Meta, empty, Guards, [Body | _]}) ->
     has_break_between(Guards, Body);
@@ -998,6 +1027,44 @@ clause_head_to_algebra({op, Meta, Op, Left, Right}) ->
 
 clause_head_to_algebra(Head) ->
     expr_to_algebra(Head).
+
+%% Clause formatting with forced break option
+clause_to_algebra_with_break({clause, _Meta, Head, empty, Body}, ForceBreak) ->
+    HeadD = clause_head_to_algebra(Head),
+    BodyD = block_to_algebra(Body),
+    if
+        ForceBreak ->
+            space(HeadD, nest(concat([<<"->">>, line(), BodyD]), ?INDENT));
+        true ->
+            space(HeadD, nest(break(<<"->">>, BodyD), ?INDENT))
+    end;
+
+clause_to_algebra_with_break({clause, _Meta, empty, Guards, Body}, ForceBreak) ->
+    GuardsD = expr_to_algebra(Guards),
+    BodyD = block_to_algebra(Body),
+    if
+        ForceBreak ->
+            space(GuardsD, nest(concat([<<"->">>, line(), BodyD]), ?INDENT));
+        true ->
+            space(GuardsD, nest(break(<<"->">>, BodyD), ?INDENT))
+    end;
+
+clause_to_algebra_with_break({clause, Meta, Head, Guards, Body}, ForceBreak) ->
+    HeadD = clause_head_to_algebra(Head),
+    GuardsD = expr_to_algebra(Guards),
+    BodyD = block_to_algebra(Meta, Body),
+    MaybeForceHeadGuards = maybe_force_breaks(has_break_between(Head, Guards)),
+    MaybeForceGuardsBody = maybe_force_breaks(has_break_between(Guards, Body) orelse ForceBreak),
+    Nested = fun(Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
+    GuardsArrowD = group(concat([MaybeForceHeadGuards, Nested(GuardsD), break(<<" ">>), <<"->">>])),
+    concat(
+        space(HeadD, <<"when">>),
+        group(concat(GuardsArrowD, MaybeForceGuardsBody, Nested(BodyD)))
+    );
+
+clause_to_algebra_with_break(Clause, _ForceBreak) ->
+    %% For other clause types, delegate to regular clause_to_algebra
+    clause_to_algebra(Clause).
 
 maybe_expressions_to_algebra([Expression]) ->
     expr_to_algebra(Expression);
@@ -1150,12 +1217,14 @@ combine_pre_comments([], _Meta, Doc) ->
     Doc;
 
 combine_pre_comments(Comments, Meta, Doc) ->
+    HasBanner = lists:any(fun is_comment_banner/1, Comments),
     case
         erlfmt_scan:get_end_line(lists:last(Comments)) + 1 <
             erlfmt_scan:get_inner_line(Meta)
     of
+        true when HasBanner -> concat(comments_to_algebra(Comments), line(3), Doc);
         true -> concat(comments_to_algebra(Comments), line(2), Doc);
-
+        false when HasBanner -> concat(comments_to_algebra(Comments), line(3), Doc);
         false -> concat(comments_to_algebra(Comments), line(), Doc)
     end.
 
@@ -1163,9 +1232,11 @@ combine_post_comments([], _Meta, Doc) ->
     Doc;
 
 combine_post_comments([Comment | _] = Comments, Meta, Doc) ->
+    HasBanner = lists:any(fun is_comment_banner/1, Comments),
     case erlfmt_scan:get_inner_end_line(Meta) + 1 < erlfmt_scan:get_line(Comment) of
+        true when HasBanner -> concat(Doc, line(3), comments_to_algebra(Comments));
         true -> concat(Doc, line(2), comments_to_algebra(Comments));
-
+        false when HasBanner -> concat(Doc, line(3), comments_to_algebra(Comments));
         false -> concat(Doc, line(), comments_to_algebra(Comments))
     end.
 
@@ -1176,6 +1247,14 @@ comments_to_algebra(Comments) ->
 comment_to_algebra({comment, _Meta, Lines}) ->
     LinesD = lists:map(fun erlfmt_algebra:string/1, Lines),
     fold_doc(fun erlfmt_algebra:line/2, LinesD).
+
+%% Detect comment banners (section dividers with === patterns)
+is_comment_banner({comment, _Meta, [Line]}) ->
+    %% Single-line comments that contain at least 3 consecutive = characters
+    string:find(Line, "===") =/= nomatch;
+is_comment_banner({comment, _Meta, Lines}) ->
+    %% Multi-line comments where any line contains at least 3 consecutive = characters
+    lists:any(fun(Line) -> string:find(Line, "===") =/= nomatch end, Lines).
 
 comments_with_pre_dot(Meta) ->
     {
