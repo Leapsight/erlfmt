@@ -80,7 +80,9 @@
 
 %% We always pretend the maybe feature is enabled
 reserved_word('maybe') -> true;
+
 reserved_word('else') -> true;
+
 reserved_word(Atom) -> erl_scan:reserved_word(Atom).
 
 -spec io_node(file:io_device()) -> node_ret().
@@ -112,15 +114,20 @@ continue(Scan, Inner0, Loc0, []) ->
                 buffer = Buffer
             },
             {ok, [{shebang, Anno, Shebang}], Comments, State};
+
         {{ok, Tokens, Loc}, Inner} ->
             continue(Scan, Inner, Loc, Tokens);
+
         {{error, Reason}, _Inner} ->
             {error, {Loc0, file, Reason}};
+
         {eof, _Inner} ->
             {eof, Loc0};
+
         {Other, _Inner} ->
             Other
     end;
+
 continue(Scan, Inner0, Loc0, Buffer0) ->
     case Scan(Inner0, Loc0) of
         {{ok, Tokens0, Loc}, Inner} ->
@@ -133,6 +140,7 @@ continue(Scan, Inner0, Loc0, Buffer0) ->
                 buffer = Buffer
             },
             {ok, Tokens, Comments, State};
+
         {Eof, _Inner} when Eof =:= eof; element(1, Eof) =:= eof ->
             {Tokens, NodeTokens, Comments, []} = split_tokens(Buffer0, []),
             State = #state{
@@ -143,8 +151,10 @@ continue(Scan, Inner0, Loc0, Buffer0) ->
                 buffer = []
             },
             {ok, Tokens, Comments, State};
+
         {{error, Reason}, _Inner} ->
             {error, {Loc0, file, Reason}};
+
         {Other, _Rest} ->
             Other
     end.
@@ -153,8 +163,10 @@ continue(Scan, Inner0, Loc0, Buffer0) ->
 read_rest(#state{inner = undefined}) ->
     %% reached EOF, no further nodes
     {ok, ""};
+
 read_rest(#state{scan = _Scan, inner = eof, loc = _Loc, buffer = Buffer}) ->
     {ok, stringify_tokens(Buffer)};
+
 read_rest(#state{scan = _Scan, inner = IO, loc = _Loc, buffer = Buffer}) ->
     String = stringify_tokens(Buffer),
     try
@@ -167,10 +179,13 @@ read_rest(#state{scan = _Scan, inner = IO, loc = _Loc, buffer = Buffer}) ->
 
 read_rest(IO, Data) when is_list(IO) ->
     [Data | IO];
+
 read_rest(IO, Data) ->
     case io:get_chars(IO, "", 4096) of
         MoreData when is_binary(MoreData) -> read_rest(IO, [Data | MoreData]);
+
         eof -> Data;
+
         {error, Reason} -> throw({error, Reason})
     end.
 
@@ -182,6 +197,7 @@ erl_scan_tokens(String, Loc) ->
         {more, Cont} ->
             {done, Resp, eof} = erl_scan:tokens(Cont, eof, Loc, ?ERL_SCAN_OPTS),
             {Resp, eof};
+
         {done, Resp, Rest} ->
             {Resp, Rest}
     end.
@@ -203,6 +219,7 @@ last_node_string_trimmed(#state{original = [First | _] = Tokens}) ->
     {String, token_anno([{text, String}, {location, Location}])}.
 
 has_new_line({white_space, _, [$\n | _]}) -> true;
+
 has_new_line(_) -> false.
 
 split_shebang(Tokens) ->
@@ -216,6 +233,7 @@ take_line(Tokens) ->
 take_shebang_comments([{white_space, _, _}, {comment, _, "%%!" ++ _} = Comment0 | Rest]) ->
     {Comment, []} = collect_comments([], Comment0),
     {[Comment], drop_initial_white_space(Rest)};
+
 take_shebang_comments([
     {white_space, _, _},
     {comment, _, _} = Comment1,
@@ -225,11 +243,13 @@ take_shebang_comments([
 ]) ->
     {Comment, []} = collect_comments([Comment2], Comment1),
     {[Comment], drop_initial_white_space(Rest)};
+
 take_shebang_comments(Tokens) ->
     {[], Tokens}.
 
 drop_initial_white_space([{white_space, _, _} | Rest]) ->
     drop_initial_white_space(Rest);
+
 drop_initial_white_space(Rest) ->
     Rest.
 
@@ -243,6 +263,7 @@ token_text(Token) ->
         %% sigil_suffix might miss the text field
         undefined when is_record(Token, sigil_suffix, 3) ->
             "";
+
         Text ->
             Text
     end.
@@ -253,6 +274,7 @@ split_tokens(Tokens, ExtraTokens0) ->
     case split_tokens(Tokens, [], []) of
         {[], Comments} ->
             {[], Tokens, Comments, ExtraTokens0};
+
         {TransformedTokens, Comments} ->
             #{end_location := {LastLine, _}} = element(2, lists:last(TransformedTokens)),
             {ExtraComments, ExtraTokens, ExtraRest} =
@@ -265,24 +287,32 @@ split_tokens([{comment, Meta, _} = Comment0 | Rest0], Acc, CAcc) ->
         true ->
             {Comment, []} = collect_comments([], Comment0),
             split_tokens(Rest0, Acc, [Comment | CAcc]);
+
         false ->
             {Comment, Rest} = collect_comments(Rest0, Comment0),
             split_tokens(Rest, Acc, [Comment | CAcc])
     end;
+
 split_tokens([{white_space, _, _} | Rest], Acc, CAcc) ->
     split_tokens(Rest, Acc, CAcc);
+
 split_tokens([{Atomic, Meta, Value} | Rest], Acc, CAcc) when ?IS_ATOMIC(Atomic) ->
     split_tokens(Rest, [{Atomic, atomic_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
+
 split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
     Token = {Type, token_anno(erl_anno:to_term(Meta)), Value},
     split_tokens(Rest, [Token | Acc], CAcc);
+
 %% Keep the `text` value for if in case it's used as an attribute
 split_tokens([{Type, Meta} | Rest], Acc, CAcc) when Type =:= 'if' ->
     split_tokens(Rest, [{Type, atomic_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
+
 split_tokens([{Type, Meta} | Rest], Acc, CAcc) when Type =:= 'dot' ->
     split_tokens(Rest, [{Type, dot_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
+
 split_tokens([{Type, Meta} | Rest], Acc, CAcc) ->
     split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
+
 split_tokens([], Acc, CAcc) ->
     {lists:reverse(Acc), lists:reverse(CAcc)}.
 
@@ -293,11 +323,14 @@ split_extra([{comment, Meta, Text0} = Token | Rest], Line, Acc, CAcc) ->
             MetaTerm = erl_anno:to_term(Meta),
             Comment = {comment, comment_anno(MetaTerm, MetaTerm), [Text]},
             split_extra(Rest, Line, [Token | Acc], [Comment | CAcc]);
+
         _ ->
             {lists:reverse(CAcc), lists:reverse(Acc), [Token | Rest]}
     end;
+
 split_extra([{white_space, _, _} = Token | Rest], Line, Acc, CAcc) ->
     split_extra(Rest, Line, [Token | Acc], CAcc);
+
 split_extra(Rest, _Line, Acc, CAcc) ->
     {lists:reverse(CAcc), lists:reverse(Acc), Rest}.
 
@@ -310,14 +343,17 @@ collect_comments(Tokens, {comment, Meta, Text0}) ->
 
 collect_comments([{white_space, _, _} | Rest], Line, LastMeta, Acc) ->
     collect_comments(Rest, Line, LastMeta, Acc);
+
 collect_comments([{comment, Meta, Text0} = Comment | Rest], Line, LastMeta, Acc) ->
     Text = string:trim(Text0, trailing),
     case erl_anno:line(Meta) of
         NextLine when NextLine =:= Line + 1 ->
             collect_comments(Rest, NextLine, Meta, [Text | Acc]);
+
         _ ->
             {lists:reverse(Acc), LastMeta, [Comment | Rest]}
     end;
+
 collect_comments(Other, _Line, LastMeta, Acc) ->
     {lists:reverse(Acc), LastMeta, Other}.
 
@@ -326,6 +362,7 @@ atomic_anno([{text, Text}, {location, {Line, Col} = Location}]) ->
 
 token_anno([{text, Text}, {location, {Line, Col} = Location}]) ->
     #{location => Location, end_location => end_location(Text, Line, Col)};
+
 token_anno({_Line, _Col} = Location) ->
     #{location => Location, end_location => Location}.
 
@@ -338,21 +375,25 @@ dot_anno([{text, _}, {location, {Line, Col} = Location}]) ->
 
 put_anno(Key, Value, Anno) when is_map(Anno) ->
     Anno#{Key => Value};
+
 put_anno(Key, Value, Node) when is_tuple(Node) ->
     setelement(2, Node, (element(2, Node))#{Key => Value}).
 
 merge_anno(Map, Anno) when is_map(Anno) ->
     maps:merge(Anno, Map);
+
 merge_anno(Map, Node) when is_tuple(Node) ->
     setelement(2, Node, maps:merge(element(2, Node), Map)).
 
 delete_anno(Key, Anno) when is_map(Anno) ->
     maps:remove(Key, Anno);
+
 delete_anno(Key, Node) when is_tuple(Node) ->
     setelement(2, Node, maps:remove(Key, element(2, Node))).
 
 delete_annos(Keys, Anno) when is_map(Anno) ->
     maps:without(Keys, Anno);
+
 delete_annos(Keys, Node) when is_tuple(Node) ->
     setelement(2, Node, maps:without(Keys, element(2, Node))).
 
@@ -368,23 +409,28 @@ get_inner_end_line(Anno) ->
 
 get_anno(Key, Anno) when is_map(Anno) ->
     map_get(Key, Anno);
+
 get_anno(Key, Node) when is_tuple(Node) ->
     map_get(Key, element(2, Node)).
 
 get_anno(Key, Anno, Default) when is_map(Anno) ->
     maps:get(Key, Anno, Default);
+
 get_anno(Key, Node, Default) when is_tuple(Node) ->
     maps:get(Key, element(2, Node), Default).
 
 update_anno(Key, Fun, Anno) when is_map(Anno) ->
     Anno#{Key => Fun(map_get(Key, Anno))};
+
 update_anno(Key, Fun, Node) when is_tuple(Node) ->
     setelement(2, Node, update_anno(Key, Fun, element(2, Node))).
 
 end_location("", Line, Column) ->
     {Line, Column};
+
 end_location([$\n | String], Line, _Column) ->
     end_location(String, Line + 1, 1);
+
 end_location([_ | String], Line, Column) ->
     end_location(String, Line, Column + 1).
 
@@ -392,6 +438,9 @@ range_anno(First, Last) ->
     put_anno(end_location, get_anno(end_location, Last), First).
 
 downgrade_maybe([{'maybe', Anno} | Rest]) -> [{atom, Anno, 'maybe'} | downgrade_maybe(Rest)];
+
 downgrade_maybe([{'else', Anno} | Rest]) -> [{atom, Anno, 'else'} | downgrade_maybe(Rest)];
+
 downgrade_maybe([Token | Rest]) -> [Token | downgrade_maybe(Rest)];
+
 downgrade_maybe([]) -> [].

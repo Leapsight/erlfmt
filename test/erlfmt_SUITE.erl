@@ -121,8 +121,10 @@ end_per_suite(_Config) ->
 init_per_group(otp_27_snapshot_tests, Config) ->
     case erlang:system_info(otp_release) >= "27" of
         true -> Config;
+
         false -> {skip, "Skipping tests for features from OTP >= 27"}
     end;
+
 init_per_group(_GroupName, Config) ->
     Config.
 
@@ -1035,11 +1037,13 @@ parse_form(String) ->
     case erlfmt:read_nodes_string("nofile", String) of
         {ok, [Form], []} ->
             Form;
+
         {ok, _, [Warning | _]} ->
             ct:fail(
                 "Expected successful parse: \n~ts\n for warning: ~ts",
                 [String, erlfmt:format_error_info(Warning)]
             );
+
         {error, {_, Mod, Reason}} ->
             ct:fail(
                 "Expected successful parse:\n~ts\ngot: ~ts",
@@ -1051,11 +1055,13 @@ parse_forms(String) ->
     case erlfmt:read_nodes_string("nofile", String) of
         {ok, Forms, []} ->
             Forms;
+
         {ok, _, [Warning | _]} ->
             ct:fail(
                 "Expected successful parse: \n~ts\n for warning: ~ts",
                 [String, erlfmt:format_error_info(Warning)]
             );
+
         {error, {_, Mod, Reason}} ->
             ct:fail(
                 "Expected successful parse:\n~ts\ngot: ~ts",
@@ -1226,11 +1232,13 @@ format_range(Config, File) ->
     Path = DataDir ++ File,
     case erlfmt:format_file_range(Path, {3, 45}, {47, 1}, []) of
         {ok, _Output, _} -> ok;
+
         {options, Options} -> range_format_exact(Options, Path)
     end.
 
 range_format_exact([], _Path) ->
     ok;
+
 range_format_exact([{Start, End} | Options], Path) ->
     {ok, _Output, _} = erlfmt:format_file_range(Path, Start, End, []),
     range_format_exact(Options, Path).
@@ -1654,6 +1662,7 @@ insert_pragma(Config) when is_list(Config) ->
 contains_pragma_string(String) ->
     case erlfmt:format_string(String, [{pragma, require}]) of
         {skip, _} -> false;
+
         _ -> true
     end.
 

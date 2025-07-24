@@ -305,6 +305,7 @@ make_relative_path(Source, Target) ->
 
 make_relative_path2([H | T1], [H | T2]) ->
     make_relative_path2(T1, T2);
+
 make_relative_path2(Source, Target) ->
     Base = lists:duplicate(length(Target), ".."),
     filename:join(Base ++ Source).

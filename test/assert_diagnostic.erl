@@ -34,6 +34,7 @@ check_length(A, B) ->
     case length(B) - length(A) of
         0 ->
             [];
+
         D when D > 0 ->
             [
                 format("Actual list has ~p unexpected items: ~p", [
@@ -41,6 +42,7 @@ check_length(A, B) ->
                     lists:sublist(B, length(A) + 1, D)
                 ])
             ];
+
         D ->
             [
                 format("Actual list lacks ~p expected items: ~p", [
@@ -55,10 +57,13 @@ check_length(A, B) ->
 %% No detection of inserted nor deleted items.
 check_elements([], _, _) ->
     [];
+
 check_elements(_, [], _) ->
     [];
+
 check_elements([H | T1], [H | T2], I) ->
     check_elements(T1, T2, I + 1);
+
 check_elements([H1 | T1], [H2 | T2], I) ->
     [
         format(
@@ -75,8 +80,10 @@ assert_snapshot_match(Expected, Output) ->
     case Output of
         {ok, Formatted, _} ->
             assert_binary_match(Expected, Formatted);
+
         {skip, _} ->
             ok;
+
         Other ->
             ct:fail("unexpected: ~p~n", [Other])
     end.
@@ -85,6 +92,7 @@ assert_binary_match(Expected, Formatted) ->
     case Formatted of
         Expected ->
             ok;
+
         Other ->
             % Split by lines (preserving empty lines).
             Expected2 = string:split(Expected, "\n", all),

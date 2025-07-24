@@ -124,6 +124,7 @@ check_markdown(Content) ->
             case maps:find(Key, Unformatted) of
                 error ->
                     ignore;
+
                 {ok, UnformattedCode} ->
                     check_fmt(UnformattedCode, FormattedCode)
             end
@@ -135,6 +136,7 @@ check_markdown(Content) ->
 
 split_code_into_maps(_Text, {text, Formatted, Unformatted}) ->
     {code, Formatted, Unformatted};
+
 split_code_into_maps(Text, {code, Formatted, Unformatted}) ->
     [FirstLine, Code0] = string:split(Text, "\n"),
     Code = strip_good_bad(Code0),
@@ -142,14 +144,18 @@ split_code_into_maps(Text, {code, Formatted, Unformatted}) ->
     case Spec of
         ["erl" ++ _, "formatted" | Key] ->
             {text, maps:put(Key, Code, Formatted), Unformatted};
+
         ["erl" ++ _, "unformatted" | Key] ->
             {text, Formatted, maps:put(Key, Code, Unformatted)};
+
         _ ->
             {text, Formatted, Unformatted}
     end.
 
 strip_good_bad("%% Good\n" ++ Rest) -> Rest;
+
 strip_good_bad("%% Bad\n" ++ Rest) -> Rest;
+
 strip_good_bad(Rest) -> Rest.
 
 check_fmt(Unformatted, Expected) ->

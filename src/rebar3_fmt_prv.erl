@@ -41,6 +41,7 @@ do(State) ->
     case rebar_state:command_parsed_args(State) of
         {ArgOpts, []} ->
             erlfmt_cli:do("rebar3 fmt", ArgOpts, ConfigOpts);
+
         {ArgOpts, ExtraFiles} ->
             erlfmt_cli:do("rebar3 fmt", ArgOpts, ConfigOpts ++ [{files, ExtraFiles}])
     end,

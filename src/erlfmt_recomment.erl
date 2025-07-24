@@ -32,6 +32,7 @@ recomment(Node, Comments) ->
 
 insert_node(Node, []) ->
     Node;
+
 insert_node({function, Meta0, Clauses0}, Comments0) ->
     {PreComments, InnerComments, PostComments} = split_comments(Meta0, Comments0),
     {Clauses, RestComments} = insert_expr_list(Clauses0, InnerComments),
@@ -39,6 +40,7 @@ insert_node({function, Meta0, Clauses0}, Comments0) ->
     Meta2 = put_post_comments(Meta1, PostComments),
     Meta = put_pre_dot_comments(Meta2, RestComments),
     {function, Meta, Clauses};
+
 insert_node({attribute, Meta0, {atom, _, RawName} = Name, Values0}, Comments) when
     RawName =:= spec; RawName =:= callback; RawName =:= type; RawName =:= opaque
 ->
@@ -48,12 +50,14 @@ insert_node({attribute, Meta0, {atom, _, RawName} = Name, Values0}, Comments) wh
     Meta2 = put_post_comments(Meta1, PostComments),
     Meta = put_pre_dot_comments(Meta2, RestComments),
     {attribute, Meta, Name, Values};
+
 insert_node({attribute, Meta0, Name, Values0}, Comments) ->
     {PreComments, InnerComments, PostComments} = split_comments(Meta0, Comments),
     Values = insert_expr_container(Values0, InnerComments),
     Meta1 = put_pre_comments(Meta0, PreComments),
     Meta = put_post_comments(Meta1, PostComments),
     {attribute, Meta, Name, Values};
+
 insert_node({exprs, Meta0, Exprs0}, Comments0) ->
     {PreComments, InnerComments, PostComments} = split_comments(Meta0, Comments0),
     {Exprs, RestComments} = insert_expr_list(Exprs0, InnerComments),
@@ -61,6 +65,7 @@ insert_node({exprs, Meta0, Exprs0}, Comments0) ->
     Meta2 = put_post_comments(Meta1, PostComments),
     Meta = put_pre_dot_comments(Meta2, RestComments),
     {exprs, Meta, Exprs};
+
 insert_node(Expr0, Comments) ->
     {PreComments, InnerComments, PostComments} = split_comments(
         element(2, Expr0),
@@ -81,20 +86,25 @@ insert_expr_list(Exprs, Comments) -> insert_expr_list(Exprs, Comments, []).
 
 insert_expr_list(Exprs, [], Acc) ->
     {lists:reverse(Acc, Exprs), []};
+
 insert_expr_list([Expr0 | Exprs], Comments0, Acc) when is_tuple(Expr0) ->
     {Expr, Comments} = insert_expr(Expr0, Comments0),
     insert_expr_list(Exprs, Comments, [Expr | Acc]);
+
 insert_expr_list([], Comments, Acc) ->
     {lists:reverse(Acc), Comments}.
 
 insert_expr_container(Exprs, []) ->
     Exprs;
+
 insert_expr_container([Expr0], Comments0) when is_tuple(Expr0) ->
     {Expr, Comments} = insert_expr(Expr0, Comments0),
     [put_post_comments(Expr, Comments)];
+
 insert_expr_container([Expr0 | Exprs], Comments0) when is_tuple(Expr0) ->
     {Expr, Comments} = insert_expr(Expr0, Comments0),
     [Expr | insert_expr_container(Exprs, Comments)];
+
 %% final comments in containers become standalone comment elements
 insert_expr_container([], Comments) ->
     Comments.
@@ -110,74 +120,93 @@ take_comments(Line, Comments) ->
 
 insert_nested(Node, []) ->
     {Node, []};
+
 insert_nested({Atomic, _, _} = Node0, Comments) when ?IS_ATOMIC(Atomic) ->
     Node = put_pre_comments(Node0, Comments),
     {Node, []};
+
 insert_nested({pid, _, _} = Node0, Comments) ->
     Node = put_pre_comments(Node0, Comments),
     {Node, []};
+
 insert_nested({dotted_special, _, _, _} = Node0, Comments) ->
     Node = put_pre_comments(Node0, Comments),
     {Node, []};
+
 insert_nested({concat, Meta, Strings0}, Comments0) ->
     {Strings, Comments} = insert_expr_list(Strings0, Comments0),
     {{concat, Meta, Strings}, Comments};
+
 insert_nested({op, Meta, Op, Expr0}, Comments0) ->
     {Expr, Comments} = insert_expr(Expr0, Comments0),
     {{op, Meta, Op, Expr}, Comments};
+
 insert_nested({op, Meta, Op, Left0, Right0}, Comments0) ->
     {Left, Comments1} = insert_expr(Left0, Comments0),
     {Right, Comments} = insert_expr(Right0, Comments1),
     {{op, Meta, Op, Left, Right}, Comments};
+
 insert_nested({cons, Meta, Head0, Tail0}, Comments0) ->
     {Head, Comments1} = insert_expr(Head0, Comments0),
     {Tail, Comments} = insert_expr(Tail0, Comments1),
     {{cons, Meta, Head, Tail}, Comments};
+
 insert_nested({spec_clause, Meta, Head0, Body0, empty}, Comments0) ->
     {Head, Comments1} = insert_expr(Head0, Comments0),
     {Body, Comments} = insert_expr(Body0, Comments1),
     {{spec_clause, Meta, Head, Body, empty}, Comments};
+
 insert_nested({spec_clause, Meta, Head0, Body0, Guards0}, Comments0) ->
     {Head, Comments1} = insert_expr(Head0, Comments0),
     {Body, Comments2} = insert_expr(Body0, Comments1),
     {Guards, Comments} = insert_expr(Guards0, Comments2),
     {{spec_clause, Meta, Head, Body, Guards}, Comments};
+
 insert_nested({clause, Meta, Head0, empty, Body0}, Comments0) ->
     {Head, Comments1} = insert_expr(Head0, Comments0),
     {Body, Comments} = insert_expr_list(Body0, Comments1),
     {{clause, Meta, Head, empty, Body}, Comments};
+
 insert_nested({clause, Meta, empty, Guards0, Body0}, Comments0) ->
     {Guards, Comments1} = insert_expr(Guards0, Comments0),
     {Body, Comments} = insert_expr_list(Body0, Comments1),
     {{clause, Meta, empty, Guards, Body}, Comments};
+
 insert_nested({clause, Meta, Head0, Guards0, Body0}, Comments0) ->
     {Head, Comments1} = insert_expr(Head0, Comments0),
     {Guards, Comments2} = insert_expr(Guards0, Comments1),
     {Body, Comments} = insert_expr_list(Body0, Comments2),
     {{clause, Meta, Head, Guards, Body}, Comments};
+
 insert_nested({Guard, Meta, Guards0}, Comments0) when Guard =:= guard_or; Guard =:= guard_and ->
     {Guards, Comments} = insert_expr_list(Guards0, Comments0),
     {{Guard, Meta, Guards}, Comments};
+
 insert_nested({Collection, Meta, Values0}, Comments0) when ?IS_COLLECTION(Collection) ->
     Values = insert_expr_container(Values0, Comments0),
     {{Collection, Meta, Values}, []};
+
 insert_nested({map, Meta, Expr0, Values0}, Comments0) ->
     {Expr, Comments1} = insert_expr(Expr0, Comments0),
     Values = insert_expr_container(Values0, Comments1),
     {{map, Meta, Expr, Values}, []};
+
 insert_nested({record, Meta, Name, Values0}, Comments0) ->
     Values = insert_expr_container(Values0, Comments0),
     {{record, Meta, Name, Values}, []};
+
 insert_nested({record, Meta, Expr0, Name, Values0}, Comments0) ->
     {Expr, Comments1} = insert_expr(Expr0, Comments0),
     Values = insert_expr_container(Values0, Comments1),
     {{record, Meta, Expr, Name, Values}, []};
+
 insert_nested({Comprehension, Meta, Expr0, LcExprs0}, Comments0) when
     Comprehension =:= lc; Comprehension =:= bc; Comprehension =:= mc
 ->
     {Expr, Comments1} = insert_expr(Expr0, Comments0),
     LcExprs = insert_expr_container(LcExprs0, Comments1),
     {{Comprehension, Meta, Expr, LcExprs}, []};
+
 insert_nested({Field, Meta, Key0, Value0}, Comments0) when
     Field =:= map_field_assoc;
     Field =:= map_field_exact;
@@ -186,116 +215,148 @@ insert_nested({Field, Meta, Key0, Value0}, Comments0) when
     {Key, Comments1} = insert_expr(Key0, Comments0),
     {Value, Comments} = insert_expr(Value0, Comments1),
     {{Field, Meta, Key, Value}, Comments};
+
 insert_nested({generate, Meta, Op, Key0, Value0}, Comments0) ->
     {Key, Comments1} = insert_expr(Key0, Comments0),
     {Value, Comments} = insert_expr(Value0, Comments1),
     {{generate, Meta, Op, Key, Value}, Comments};
+
 %% no internal comments in record_indexm record_field, or bin_element
 insert_nested({record_index, _, _, _} = Node, Comments) ->
     {put_pre_comments(Node, Comments), []};
+
 insert_nested({record_field, _, _} = Node, Comments) ->
     {put_pre_comments(Node, Comments), []};
+
 insert_nested({record_field, Meta0, Expr0, Name, Key}, Comments0) ->
     {Expr, Comments1} = insert_expr(Expr0, Comments0),
     Meta = put_pre_comments(Meta0, Comments1),
     {{record_field, Meta, Expr, Name, Key}, []};
+
 insert_nested({bin_element, Meta0, Expr0, Size, Types}, Comments0) ->
     {Expr, Comments1} = insert_expr(Expr0, Comments0),
     Meta = put_pre_comments(Meta0, Comments1),
     {{bin_element, Meta, Expr, Size, Types}, []};
+
 insert_nested({call, Meta, Name0, Args0}, Comments0) ->
     {Name, Comments1} = insert_expr(Name0, Comments0),
     Args = insert_expr_container(Args0, Comments1),
     {{call, Meta, Name, Args}, []};
+
 insert_nested({macro_call, Meta0, Name, none}, Comments0) ->
     Meta = put_pre_comments(Meta0, Comments0),
     {{macro_call, Meta, Name, none}, []};
+
 insert_nested({macro_call, Meta, Name, Args0}, Comments0) ->
     Args = insert_expr_container(Args0, Comments0),
     {{macro_call, Meta, Name, Args}, []};
+
 insert_nested({macro_string, Meta0, Name}, Comments0) ->
     Meta = put_pre_comments(Meta0, Comments0),
     {{macro_string, Meta, Name}, []};
+
 insert_nested({remote, Meta, Mod0, Name0}, Comments0) ->
     {Mod, Comments1} = insert_expr(Mod0, Comments0),
     {Name, Comments} = insert_expr(Name0, Comments1),
     {{remote, Meta, Mod, Name}, Comments};
+
 insert_nested({'case', Meta, Expr0, Clauses0}, Comments0) ->
     {Expr, Comments1} = insert_expr(Expr0, Comments0),
     Clauses = insert_expr_container(Clauses0, Comments1),
     {{'case', Meta, Expr, Clauses}, []};
+
 insert_nested({'maybe', Meta, MaybeExpressions0}, Comments0) ->
     MaybeExpressions = insert_expr_container(MaybeExpressions0, Comments0),
     {{'maybe', Meta, MaybeExpressions}, []};
+
 insert_nested({'maybe', Meta, MaybeExpressions0, ElseClause0}, Comments0) ->
     {MaybeExpressions, Comments1} = insert_expr_list(MaybeExpressions0, Comments0),
     {ElseClause, []} = insert_nested(ElseClause0, Comments1),
     {{'maybe', Meta, MaybeExpressions, ElseClause}, []};
+
 insert_nested({'else_clause', Meta, Clauses0}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments0),
     {{'else_clause', Meta, Clauses}, []};
+
 insert_nested({'receive', Meta, Clauses0}, Comments0) ->
     {Clauses, []} = insert_expr(Clauses0, Comments0),
     {{'receive', Meta, Clauses}, []};
+
 insert_nested({'receive', Meta, empty, After0}, Comments0) ->
     {After, []} = insert_expr(After0, Comments0),
     {{'receive', Meta, empty, After}, []};
+
 insert_nested({'receive', Meta, Clauses0, After0}, Comments0) ->
     {Clauses, Comments1} = insert_expr(Clauses0, Comments0),
     {After, []} = insert_expr(After0, Comments1),
     {{'receive', Meta, Clauses, After}, []};
+
 insert_nested({after_clause, Meta, Expr0, Body0}, Comments0) ->
     {Expr, Comments1} = insert_expr(Expr0, Comments0),
     Body = insert_expr_container(Body0, Comments1),
     {{after_clause, Meta, Expr, Body}, []};
+
 insert_nested({'if', Meta, Clauses0}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments0),
     {{'if', Meta, Clauses}, []};
+
 insert_nested({'try', Meta, Body0, OfClauses0, CatchClauses0, []}, Comments0) ->
     {Body, Comments1} = insert_expr(Body0, Comments0),
     {OfClauses, Comments2} = insert_expr_or_none(OfClauses0, Comments1),
     {CatchClauses, []} = insert_expr_or_none(CatchClauses0, Comments2),
     {{'try', Meta, Body, OfClauses, CatchClauses, []}, []};
+
 insert_nested({'try', Meta, Body0, OfClauses0, CatchClauses0, After0}, Comments0) ->
     {Body, Comments1} = insert_expr(Body0, Comments0),
     {OfClauses, Comments2} = insert_expr_or_none(OfClauses0, Comments1),
     {CatchClauses, Comments3} = insert_expr_or_none(CatchClauses0, Comments2),
     After = insert_expr_container(After0, Comments3),
     {{'try', Meta, Body, OfClauses, CatchClauses, After}, []};
+
 insert_nested({spec, Meta, Name, Clauses0}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments0),
     {{spec, Meta, Name, Clauses}, []};
+
 insert_nested({'fun', _, Fun} = Node, Comments0) when
     element(1, Fun) =:= 'function'; Fun =:= type
 ->
     {put_pre_comments(Node, Comments0), []};
+
 insert_nested({'fun', Meta, {type, InnerMeta, Args0, Res0}}, Comments0) ->
     {Args, Comments1} = insert_expr(Args0, Comments0),
     {Res, Comments} = insert_expr(Res0, Comments1),
     {{'fun', Meta, {type, InnerMeta, Args, Res}}, Comments};
+
 insert_nested({'fun', Meta, {clauses, InnerMeta, Clauses0}}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments0),
     {{'fun', Meta, {clauses, InnerMeta, Clauses}}, []};
+
 insert_nested({'catch', Meta, Args0}, Comments0) ->
     {Args, Comments} = insert_expr_list(Args0, Comments0),
     {{'catch', Meta, Args}, Comments};
+
 insert_nested({args, Meta, Args0}, Comments0) ->
     Args = insert_expr_container(Args0, Comments0),
     {{args, Meta, Args}, []};
+
 insert_nested({clauses, Meta, Clauses0}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments0),
     {{clauses, Meta, Clauses}, []};
+
 insert_nested({body, Meta, Exprs0}, Comments0) ->
     Exprs = insert_expr_container(Exprs0, Comments0),
     {{body, Meta, Exprs}, []};
+
 insert_nested({Name, Meta}, Comments) ->
     {{Name, Meta}, Comments}.
 
 insert_expr_or_none(none, Comments) -> {none, Comments};
+
 insert_expr_or_none(Expr, Comments) -> insert_expr(Expr, Comments).
 
 put_pre_dot_comments(NodeOrMeta, []) ->
     NodeOrMeta;
+
 put_pre_dot_comments(NodeOrMeta, Comments) ->
     Existing = erlfmt_scan:get_anno(pre_dot_comments, NodeOrMeta, []),
     erlfmt_scan:merge_anno(
@@ -307,6 +368,7 @@ put_pre_dot_comments(NodeOrMeta, Comments) ->
 
 put_post_comments(NodeOrMeta, []) ->
     NodeOrMeta;
+
 put_post_comments(NodeOrMeta, Comments) ->
     Loc = erlfmt_scan:get_anno(end_location, NodeOrMeta),
     CommentLoc = erlfmt_scan:get_anno(end_location, lists:last(Comments)),
@@ -322,6 +384,7 @@ put_post_comments(NodeOrMeta, Comments) ->
 
 put_pre_comments(NodeOrMeta, []) ->
     NodeOrMeta;
+
 put_pre_comments(NodeOrMeta, Comments) ->
     Loc = erlfmt_scan:get_anno(location, NodeOrMeta),
     CommentLoc = erlfmt_scan:get_anno(location, hd(Comments)),

@@ -178,15 +178,19 @@ string(String) ->
 -spec concat(doc(), doc()) -> doc().
 concat(Left, Right) when is_binary(Left), is_binary(Right) ->
     #doc_string{string = [Left | Right], length = byte_size(Left) + byte_size(Right)};
+
 concat(#doc_string{string = String, length = Length}, Right) when is_binary(Right) ->
     #doc_string{string = [String | Right], length = Length + byte_size(Right)};
+
 concat(Left, #doc_string{string = String, length = Length}) when is_binary(Left) ->
     #doc_string{string = [Left | String], length = Length + byte_size(Left)};
+
 concat(#doc_string{} = Left, #doc_string{} = Right) ->
     #doc_string{
         string = [Left#doc_string.string | Right#doc_string.string],
         length = Left#doc_string.length + Right#doc_string.length
     };
+
 concat(Left, Right) when ?is_doc(Left), ?is_doc(Right) ->
     #doc_cons{left = Left, right = Right}.
 
@@ -208,8 +212,10 @@ nest(Doc, Level) ->
 -spec nest(doc(), non_neg_integer(), always | break) -> doc().
 nest(Doc, 0, _Mode) when ?is_doc(Doc) ->
     Doc;
+
 nest(Doc, Indent, always) when ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0 ->
     #doc_nest{doc = Doc, indent = Indent, always_or_break = always};
+
 nest(Doc, Indent, break) when ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0 ->
     #doc_nest{doc = Doc, indent = Indent, always_or_break = break}.
 
@@ -414,8 +420,10 @@ line(Doc1, Doc2) -> concat(Doc1, line(), Doc2).
 -spec fold_doc(fun((doc(), doc()) -> doc()), [doc()]) -> doc().
 fold_doc(_Fun, []) ->
     empty();
+
 fold_doc(_Fun, [Doc]) ->
     Doc;
+
 fold_doc(Fun, [Doc | Docs]) ->
     Fun(Doc, fold_doc(Fun, Docs)).
 
@@ -455,10 +463,13 @@ when
 
 fits(Width, Column, HasBreaks, _) when Column > Width andalso HasBreaks ->
     false;
+
 fits(_, _, _, []) ->
     true;
+
 fits(Width, Column, _, {tail, HasBreaks, Entries}) ->
     fits(Width, Column, HasBreaks, Entries);
+
 %   ## Flat no break
 
 fits(Width, Column, HasBreaks, [
@@ -466,8 +477,10 @@ fits(Width, Column, HasBreaks, [
     | T
 ]) ->
     fits(Width, Column, HasBreaks, [{Indent, flat_no_break, X} | T]);
+
 fits(Width, Column, HasBreaks, [{Indent, flat_no_break, #doc_fits{group = X}} | T]) ->
     fits(Width, Column, HasBreaks, [{Indent, flat_no_break, X} | T]);
+
 %   ## Breaks no flat
 
 fits(Width, Column, HasBreaks, [
@@ -475,86 +488,117 @@ fits(Width, Column, HasBreaks, [
     | T
 ]) ->
     fits(Width, Column, HasBreaks, [{Indent, break_no_flat, X} | T]);
+
 fits(Width, Column, HasBreaks, [{_Indent, break_no_flat, doc_force_breaks} | T]) ->
     fits(Width, Column, HasBreaks, T);
+
 fits(_, _, _, [{_, break_no_flat, #doc_break{}} | _]) ->
     true;
+
 fits(_, _, _, [{_, break_no_flat, #doc_line{}} | _]) ->
     true;
+
 %   ## Breaks
 
 fits(_, _, _, [{_, break, #doc_break{}} | _]) ->
     true;
+
 fits(_, _, _, [{_, break, #doc_line{}} | _]) ->
     true;
+
 fits(Width, Column, HasBreaks, [{Indent, break, #doc_group{group = X}} | T]) ->
     fits(Width, Column, HasBreaks, [{Indent, flat, X} | {tail, HasBreaks, T}]);
+
 %   ## Catch all
 
 fits(Width, _, _, [{Indent, _, #doc_line{}} | T]) ->
     fits(Width, Indent, false, T);
+
 fits(Width, Column, HasBreaks, [{_, _, doc_nil} | T]) ->
     fits(Width, Column, HasBreaks, T);
+
 fits(Width, Column, HasBreaks, [{_, _, #doc_string{length = L}} | T]) ->
     fits(Width, Column + L, HasBreaks, T);
+
 fits(Width, Column, HasBreaks, [{_, _, S} | T]) when is_binary(S) ->
     fits(Width, Column + byte_size(S), HasBreaks, T);
+
 fits(_, _, _, [{_, _, doc_force_breaks} | _]) ->
     false;
+
 fits(Width, Column, _, [{_, _, #doc_break{break = S}} | T]) ->
     fits(Width, Column + byte_size(S), true, T);
+
 fits(Width, Column, HasBreaks, [{Indent, M, #doc_nest{doc = X, always_or_break = break}} | T]) ->
     fits(Width, Column, HasBreaks, [{Indent, M, X} | T]);
+
 fits(Width, Column, HasBreaks, [{Indent, M, #doc_nest{doc = X, indent = J}} | T]) ->
     fits(Width, Column, HasBreaks, [{Indent + J, M, X} | T]);
+
 fits(Width, Column, HasBreaks, [{Indent, M, #doc_cons{left = X, right = Y}} | T]) ->
     fits(Width, Column, HasBreaks, [{Indent, M, X}, {Indent, M, Y} | T]);
+
 fits(Width, Column, HasBreaks, [{Indent, M, #doc_group{group = X}} | T]) ->
     fits(Width, Column, HasBreaks, [{Indent, M, X} | {tail, HasBreaks, T}]).
 
 -spec format(integer() | infinity, integer(), [{integer(), mode(), doc()}]) -> [binary()].
 format(_, _, []) ->
     [];
+
 format(Width, Column, [{_, _, doc_nil} | T]) ->
     format(Width, Column, T);
+
 format(Width, _, [{Indent, _, #doc_line{count = Count}} | T]) ->
     NewLines = binary:copy(<<"\n">>, Count - 1),
     [NewLines, indent(Indent) | format(Width, Indent, T)];
+
 format(Width, Column, [{Indent, M, #doc_cons{left = X, right = Y}} | T]) ->
     format(Width, Column, [{Indent, M, X}, {Indent, M, Y} | T]);
+
 format(Width, Column, [{_, _, #doc_string{string = S, length = L}} | T]) ->
     [S | format(Width, Column + L, T)];
+
 format(Width, Column, [{_, _, S} | T]) when is_binary(S) ->
     [S | format(Width, Column + byte_size(S), T)];
+
 format(Width, Column, [{_Indent, _M, doc_force_breaks} | T]) ->
     format(Width, Column, T);
+
 format(Width, Column, [{Indent, M, #doc_fits{group = X}} | T]) ->
     format(Width, Column, [{Indent, M, X} | T]);
+
 %   # Flex breaks are not conditional to the mode
 format(Width, K0, [{Indent, M, #doc_break{break = S, flex_or_strict = flex}} | T]) ->
     Column = K0 + byte_size(S),
     case Width == infinity orelse M == flat orelse fits(Width, Column, true, T) of
         true -> [S | format(Width, Column, T)];
+
         false -> [indent(Indent) | format(Width, Indent, T)]
     end;
+
 %   # Strict breaks are conditional to the mode
 format(Width, Column, [{Indent, M, #doc_break{break = S, flex_or_strict = strict}} | T]) ->
     case M of
         break -> [indent(Indent) | format(Width, Indent, T)];
+
         _ -> [S | format(Width, Column + byte_size(S), T)]
     end;
+
 %   # Nesting is conditional to the mode.
 format(Width, Column, [{Indent, M, #doc_nest{doc = X, indent = J, always_or_break = Nest}} | T]) ->
     case Nest == always orelse (Nest == break andalso M == break) of
         true -> format(Width, Column, [{Indent + J, M, X} | T]);
+
         false -> format(Width, Column, [{Indent, M, X} | T])
     end;
+
 %   # Groups must do the fitting decision.
 format(Width, Column, [{Indent, _, #doc_group{group = X}} | T0]) ->
     {StringLength, T1} = peek_next_string_length(T0),
     case Width == infinity orelse fits(Width - StringLength, Column, false, [{Indent, flat, X}]) of
         true ->
             format(Width, Column, [{Indent, flat, X} | T1]);
+
         false ->
             T = force_next_flex_break(T1),
             format(Width, Column, [{Indent, break, X} | T])
@@ -562,27 +606,35 @@ format(Width, Column, [{Indent, _, #doc_group{group = X}} | T0]) ->
 
 peek_next_string_length([{Indent, M, #doc_cons{left = Left, right = Right}} | T]) ->
     peek_next_string_length([{Indent, M, Left}, {Indent, M, Right} | T]);
+
 peek_next_string_length([{_, _, #doc_string{length = Length}} | _] = Stack) ->
     {Length, Stack};
+
 peek_next_string_length([{_, _, Binary} | _] = Stack) when is_binary(Binary) ->
     {byte_size(Binary), Stack};
+
 peek_next_string_length(Stack) ->
     {0, Stack}.
 
 %% after a group breaks, we force next flex break to also break
 force_next_flex_break([{Indent, M, #doc_break{flex_or_strict = flex} = Break} | T]) ->
     [{Indent, M, Break#doc_break{flex_or_strict = strict}} | T];
+
 force_next_flex_break([{_, _, #doc_break{flex_or_strict = strict}} | _] = Stack) ->
     Stack;
+
 force_next_flex_break([{Indent, M, #doc_cons{left = Left, right = Right}} | T]) ->
     force_next_flex_break([{Indent, M, Left}, {Indent, M, Right} | T]);
+
 force_next_flex_break([Other | T]) ->
     [Other | force_next_flex_break(T)];
+
 force_next_flex_break([]) ->
     [].
 
 indent(0) ->
     ?newline;
+
 indent(Indent) when is_integer(Indent) ->
     Spaces = binary:copy(<<" ">>, Indent),
     <<?newline/binary, Spaces/binary>>.

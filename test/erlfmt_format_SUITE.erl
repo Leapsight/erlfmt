@@ -94,13 +94,17 @@ end_per_suite(_Config) ->
 init_per_group(otp_27_features, Config) ->
     case erlang:system_info(otp_release) >= "27" of
         true -> Config;
+
         false -> {skip, "Skipping tests for features from OTP >= 27"}
     end;
+
 init_per_group(otp_28_features, Config) ->
     case erlang:system_info(otp_release) >= "28" of
         true -> Config;
+
         false -> {skip, "Skipping tests for features from OTP >= 28"}
     end;
+
 init_per_group(_GroupName, Config) ->
     Config.
 
@@ -110,8 +114,10 @@ end_per_group(_GroupName, _Config) ->
 init_per_testcase(Maybe, Config) when Maybe =:= maybe_expression; Maybe =:= maybe_incomplete ->
     case has_feature(maybe_expr, Config) of
         true -> Config;
+
         false -> {skip, "Maybe feature not present in the runtime system"}
     end;
+
 init_per_testcase(_TestCase, Config) ->
     Config.
 
@@ -202,6 +208,7 @@ all() ->
 get_features() ->
     case erlang:function_exported(erl_features, all, 0) of
         true -> erl_features:all();
+
         false -> []
     end.
 

@@ -28,6 +28,7 @@
     case A of
         B ->
             ok;
+
         _ ->
             Errs =
                 assert_diagnostic:check_length(A, B) ++

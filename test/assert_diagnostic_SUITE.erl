@@ -75,6 +75,7 @@ check_list_equal_message(L0, L1, Msg) ->
     case (catch ?assertListEqual(L0, L1)) of
         ok ->
             ct:fail("Got 'ok', was expecting exception: ~p", [Msg]);
+
         % Erlang doc: For exceptions of class error, that is, run-time errors,
         %             {'EXIT',{Reason,Stack}} is returned.
         % ?assertListEqual follows ?assert API and returns Reason as:
@@ -82,6 +83,7 @@ check_list_equal_message(L0, L1, Msg) ->
         {'EXIT', {{assert, Info}, _ST}} ->
             Comment = [C || {comment, C} <- Info],
             ?assertEqual([Msg], Comment);
+
         X ->
             ct:fail("Expected exception: ~p~nGot: ~p", [Msg, X])
     end.

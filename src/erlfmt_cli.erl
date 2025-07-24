@@ -83,15 +83,18 @@ do(Name, PreferOpts, DefaultOpts) ->
             } ->
                 %% Do not provide default files if we are writing to stdout
                 resolve_parsed(PreferParsed, DefaultParsed);
+
             {{format, [], _, _}, {format, [], _, _}, _} when SpecifiedFiles =/= [] ->
                 io:format(standard_error, "no files matching ~p~n", [SpecifiedFiles]),
                 help;
+
             {_, _, []} ->
                 %% no files means we should provide default files
                 DefaultFiles = parse_opts([
                     {files, ["{src,include,test}/*.{hrl,erl,app.src}", "rebar.config"]}
                 ]),
                 resolve_parsed(PreferParsed, resolve_parsed(DefaultParsed, DefaultFiles));
+
             _ ->
                 resolve_parsed(PreferParsed, DefaultParsed)
         end,
@@ -122,10 +125,15 @@ resolve_path2(AbsPath) ->
     filename:join(resolve_path2(Components, [Volume])).
 
 resolve_path2([".." | T1], [Volume]) -> resolve_path2(T1, [Volume]);
+
 resolve_path2([<<"..">> | T1], [Volume]) -> resolve_path2(T1, [Volume]);
+
 resolve_path2([".." | T1], [_H2 | T2]) -> resolve_path2(T1, T2);
+
 resolve_path2([<<"..">> | T1], [_H2 | T2]) -> resolve_path2(T1, T2);
+
 resolve_path2([H1 | T1], Components) -> resolve_path2(T1, [H1 | Components]);
+
 resolve_path2([], Components) -> lists:reverse(Components).
 
 %% needed because of getopt
@@ -140,9 +148,11 @@ unprotected_with_config(Name, ParsedConfig) ->
                     io:put_chars(standard_error, ["no files provided to format\n\n"]),
                     getopt:usage(opts(), Name),
                     erlang:halt(2);
+
                 Files ->
                     case Config#config.out of
                         check -> io:format(standard_error, "Checking formatting...~n", []);
+
                         _ -> ok
                     end,
                     case parallel(fun(File) -> format_file(File, Config) end, Files) of
@@ -154,9 +164,11 @@ unprotected_with_config(Name, ParsedConfig) ->
                                         "All matched files use erlfmt code style!~n",
                                         []
                                     );
+
                                 _ ->
                                     ok
                             end;
+
                         warn ->
                             io:format(
                                 standard_error,
@@ -164,17 +176,21 @@ unprotected_with_config(Name, ParsedConfig) ->
                                 []
                             ),
                             erlang:halt(1);
+
                         error ->
                             erlang:halt(4)
                     end
             end;
+
         {error, Message} ->
             io:put_chars(standard_error, [Message, "\n\n"]),
             getopt:usage(opts(), Name),
             erlang:halt(2);
+
         help ->
             getopt:usage(opts(), Name),
             erlang:halt(0);
+
         version ->
             {ok, Vsn} = application:get_key(erlfmt, vsn),
             io:format("~s version ~s\n", [Name, Vsn]),
@@ -186,6 +202,7 @@ format_file(FileName, Config) ->
         Config,
     case Verbose of
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
+
         false -> ok
     end,
     Options =
@@ -197,18 +214,23 @@ format_file(FileName, Config) ->
         case {Range, Out, FileName} of
             {undefined, check, stdin} ->
                 check_stdin(Options);
+
             {undefined, check, _} ->
                 check_file(FileName, Options);
+
             {{_, _}, check, _} ->
                 {error, "Checking of range not supported."};
+
             {{_, _}, replace, _} ->
                 {error, "In place formatting of range not supported yet."};
+
             _ ->
                 erlfmt:format_file(FileName, Options)
         end,
     case {Verbose, Result} of
         {true, {skip, _}} ->
             io:format(standard_error, "Skipping ~s because of missing @format pragma\n", [FileName]);
+
         _ ->
             ok
     end,
@@ -216,12 +238,15 @@ format_file(FileName, Config) ->
         {ok, FormattedText, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
             write_formatted(FileName, FormattedText, Out);
+
         {warn, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
             io:format(standard_error, "[warn] ~s\n", [FileName]),
             warn;
+
         {skip, RawString} ->
             write_formatted(FileName, RawString, Out);
+
         {error, Error} ->
             print_error_info(Error),
             error
@@ -229,13 +254,16 @@ format_file(FileName, Config) ->
 
 write_formatted(_FileName, _Formatted, check) ->
     ok;
+
 write_formatted(_FileName, Formatted, standard_out) ->
     io:put_chars(Formatted);
+
 write_formatted(FileName, Formatted, Out) ->
     OutFileName = out_file(FileName, Out),
     case filelib:ensure_dir(OutFileName) of
         ok ->
             ok;
+
         {error, Reason1} ->
             print_error_info({OutFileName, 0, file, Reason1}),
             error
@@ -243,6 +271,7 @@ write_formatted(FileName, Formatted, Out) ->
     {ok, OriginalBin} = file:read_file(FileName),
     case unicode:characters_to_binary(Formatted) of
         OriginalBin -> ok;
+
         FormattedBin -> write_file(OutFileName, FormattedBin)
     end.
 
@@ -250,6 +279,7 @@ write_file(OutFileName, FormattedBin) ->
     case file:write_file(OutFileName, unicode:characters_to_binary(FormattedBin)) of
         ok ->
             ok;
+
         {error, Reason2} ->
             print_error_info({OutFileName, 0, file, Reason2}),
             error
@@ -257,6 +287,7 @@ write_file(OutFileName, FormattedBin) ->
 
 out_file(FileName, replace) ->
     FileName;
+
 out_file(FileName, {path, Path}) ->
     filename:join(Path, filename:basename(FileName)).
 
@@ -267,8 +298,10 @@ check_file(FileName, Options) ->
             FormattedBin = unicode:characters_to_binary(Formatted),
             case FormattedBin of
                 OriginalBin -> {ok, Formatted, FormatWarnings};
+
                 _ -> {warn, FormatWarnings}
             end;
+
         Other ->
             Other
     end.
@@ -284,11 +317,14 @@ check_stdin(Options) ->
                     {ok, Formatted, FormatWarnings} ->
                         case Formatted of
                             Original -> {ok, Formatted, FormatWarnings};
+
                             _ -> {warn, FormatWarnings}
                         end;
+
                     Other ->
                         Other
                 end;
+
             {error, Reason} ->
                 {error, Reason}
         end,
@@ -300,7 +336,9 @@ check_stdin(Options) ->
 read_stdin(Data) ->
     case io:get_chars(standard_io, "", 4096) of
         MoreData when is_binary(MoreData) -> read_stdin([Data | MoreData]);
+
         eof -> {ok, Data};
+
         {error, Reason} -> {error, Reason}
     end.
 
@@ -310,44 +348,63 @@ parse_opts(Args) ->
 
 parse_opts([help | _Rest], _Files, _Exclude, _Config) ->
     help;
+
 parse_opts([version | _Rest], _Files, _Exclude, _Config) ->
     version;
+
 parse_opts([write | _Rest], _Files, _Exclude, #config{out = Out}) when Out =/= standard_out ->
     {error, "--write or replace mode can't be combined check mode"};
+
 parse_opts([write | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{out = replace});
+
 parse_opts([{out, _Path} | _Rest], _Files, _Exclude, #config{out = Out}) when
     Out =/= standard_out
 ->
     {error, "out or replace mode can't be combined check mode"};
+
 parse_opts([{out, Path} | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{out = {path, Path}});
+
 parse_opts([verbose | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{verbose = true});
+
 parse_opts([check | _Rest], _Files, _Exclude, #config{out = Out}) when Out =/= standard_out ->
     {error, "--check mode can't be combined write or replace mode"};
+
 parse_opts([check | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{out = check});
+
 parse_opts([{print_width, Value} | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{print_width = Value});
+
 parse_opts([require_pragma | _Rest], _Files, _Exclude, #config{pragma = insert}) ->
     {error, "Cannot use both --insert-pragma and --require-pragma options together."};
+
 parse_opts([require_pragma | _Rest], _Files, _Exclude, #config{pragma = delete}) ->
     {error, "Cannot use both --delete-pragma and --require-pragma options together."};
+
 parse_opts([require_pragma | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{pragma = require});
+
 parse_opts([insert_pragma | _Rest], _Files, _Exclude, #config{pragma = require}) ->
     {error, "Cannot use both --insert-pragma and --require-pragma options together."};
+
 parse_opts([insert_pragma | _Rest], _Files, _Exclude, #config{pragma = delete}) ->
     {error, "Cannot use both --insert-pragma and --delete-pragma options together."};
+
 parse_opts([insert_pragma | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{pragma = insert});
+
 parse_opts([delete_pragma | _Rest], _Files, _Exclude, #config{pragma = insert}) ->
     {error, "Cannot use both --insert-pragma and --delete-pragma options together."};
+
 parse_opts([delete_pragma | _Rest], _Files, _Exclude, #config{pragma = require}) ->
     {error, "Cannot use both --require-pragma and --delete-pragma options together."};
+
 parse_opts([delete_pragma | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{pragma = delete});
+
 parse_opts([{range, String} | Rest], Files, Exclude, Config) ->
     % Ad-hoc parsing. Mitigation for the absence of "couple of integers" direct support.
     Range1 = string:split(String, ",", all),
@@ -357,34 +414,46 @@ parse_opts([{range, String} | Rest], Files, Exclude, Config) ->
             [X] ->
                 % Single line. Set end=start
                 [X, X];
+
             [X, Y] ->
                 [X, Y];
+
             _ ->
                 {error, "Range: Expected 1 argument (single line) or 2 (start, end)."}
         end,
     case Range3 of
         [Start, End] when Start > End ->
             {error, "Range: End must be greater or equal than Start."};
+
         [Start, End] ->
             parse_opts(Rest, Files, Exclude, Config#config{range = {Start, End}});
+
         Error ->
             Error
     end;
+
 parse_opts([{files, NewFiles} | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, expand_files(NewFiles, Files), Exclude, Config);
+
 parse_opts([{exclude_files, NewExcludes} | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, expand_files(NewExcludes, Exclude), Config);
+
 parse_opts([], [stdin], _Exclude, #config{out = Out}) when Out =/= standard_out, Out =/= check ->
     {error, "stdin mode can't be combined with write options"};
+
 parse_opts([], [stdin], [], Config) ->
     {format, [stdin], [], Config};
+
 parse_opts([], [stdin], [_Exclude | _], _Config) ->
     {error, "stdin mode can't be combined with excluded files"};
+
 parse_opts([], Files, Exclude, Config) ->
     case lists:member(stdin, Files) of
         true -> {error, "stdin mode can't be combined with other files"};
+
         false -> {format, lists:reverse(Files), lists:reverse(Exclude), Config}
     end;
+
 parse_opts([Unknown | _], _Files, _Exclude, _Config) ->
     {error, io_lib:format("unknown option: ~p", [Unknown])}.
 
@@ -393,16 +462,22 @@ resolve_parsed(PreferParsed, DefaultParsed) ->
     case {PreferParsed, DefaultParsed} of
         {{error, _} = Error, _} ->
             Error;
+
         {_, {error, _} = Error} ->
             Error;
+
         {help, _} ->
             help;
+
         {_, help} ->
             help;
+
         {version, _} ->
             version;
+
         {_, version} ->
             version;
+
         {
             {format, PreferFiles, PreferExclude, PreferConfig},
             {format, DefaultFiles, DefaultExclude, DefaultConfig}
@@ -413,6 +488,7 @@ resolve_parsed(PreferParsed, DefaultParsed) ->
     end.
 
 resolve_files([], DefaultFiles) -> DefaultFiles;
+
 resolve_files(PreferFiles, _DefaultFiles) -> PreferFiles.
 
 resolve_config(
@@ -440,22 +516,28 @@ resolve_config(
     }.
 
 resolve_width(undefined, W) -> W;
+
 resolve_width(W, _) -> W.
 
 resolve_pragma(ignore, P) -> P;
+
 resolve_pragma(P, _) -> P.
 
 resolve_out(standard_out, O) -> O;
+
 resolve_out(O, _) -> O.
 
 resolve_range(undefined, R) -> R;
+
 resolve_range(R, _) -> R.
 
 specified_files(List) ->
     lists:filter(
         fun
             ({files, _}) -> true;
+
             (stdin) -> true;
+
             (_) -> false
         end,
         List
@@ -463,18 +545,22 @@ specified_files(List) ->
 
 expand_files("-", Files) ->
     [stdin | Files];
+
 expand_files(NewFile, Files) when is_integer(hd(NewFile)) ->
     case filelib:is_regular(NewFile) of
         true ->
             [NewFile | Files];
+
         false ->
             case filelib:wildcard(NewFile) of
                 [] ->
                     Files;
+
                 NewFiles ->
                     NewFiles ++ Files
             end
     end;
+
 expand_files(NewFiles, Files) when is_list(NewFiles) ->
     lists:foldl(fun expand_files/2, Files, NewFiles).
 
@@ -487,9 +573,11 @@ parallel(Fun, List) ->
 
 parallel_loop(_, [], _, [], ReducedResult) ->
     ReducedResult;
+
 parallel_loop(Fun, [Elem | Rest], N, Refs, ReducedResult) when length(Refs) < N ->
     {_, Ref} = erlang:spawn_monitor(fun() -> exit(Fun(Elem)) end),
     parallel_loop(Fun, Rest, N, [Ref | Refs], ReducedResult);
+
 parallel_loop(Fun, List, N, Refs0, ReducedResult0) ->
     receive
         {'DOWN', Ref, process, _, Result} when
@@ -499,12 +587,17 @@ parallel_loop(Fun, List, N, Refs0, ReducedResult0) ->
             ReducedResult =
                 case {Result, ReducedResult0} of
                     {_, error} -> error;
+
                     {error, _} -> error;
+
                     {_, warn} -> warn;
+
                     {warn, _} -> warn;
+
                     {_, _} -> ok
                 end,
             parallel_loop(Fun, List, N, Refs, ReducedResult);
+
         {'DOWN', _Ref, process, _, Crash} ->
             exit(Crash)
     end.
