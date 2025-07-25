@@ -11,6 +11,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
+
 -module(erlfmt_format).
 
 -include("erlfmt_scan.hrl").
@@ -46,15 +47,6 @@
 ]).
 
 -define(INDENT, 4).
-
-
-
-
-%% =============================================================================
-%% this
-%% =============================================================================
-
-
 
 -spec to_algebra(erlfmt_parse:any_node()) -> erlfmt_algebra:doc().
 
@@ -144,6 +136,29 @@ to_algebra({attribute, Meta, Name, Values}) ->
         call(Meta, Values, <<"(">>, <<")">>)
     ),
     combine_comments_with_dot(Meta, Doc);
+
+to_algebra({comment, Meta, _Lines} = Comment) ->
+    %% Handle standalone comments with banner detection
+    case is_comment_banner(Comment) of
+        true ->
+            %% Banner comments get extra spacing
+            IsFirstInFile = erlfmt_scan:get_line(Meta) =:= 1,
+            if
+                IsFirstInFile ->
+                    %% No leading lines for banner at start of file
+                    concat(comment_to_algebra(Comment), line(4));
+
+                true ->
+                    %% Normal banner spacing
+                    concat(
+                        concat(line(4), comment_to_algebra(Comment)), line(4)
+                    )
+            end;
+
+        false ->
+            %% Regular comments
+            comment_to_algebra(Comment)
+    end;
 
 to_algebra(Expr) ->
     Meta = element(2, Expr),
@@ -1418,7 +1433,7 @@ combine_pre_comments(Comments, Meta, Doc) ->
     HasBanner = lists:any(fun is_comment_banner/1, Comments),
     [FirstComment | _] = Comments,
     IsFirstInFile = erlfmt_scan:get_line(FirstComment) =:= 1,
-    
+
     case
         erlfmt_scan:get_end_line(lists:last(Comments)) + 1 <
             erlfmt_scan:get_inner_line(Meta)
@@ -1426,7 +1441,7 @@ combine_pre_comments(Comments, Meta, Doc) ->
         true when HasBanner andalso IsFirstInFile ->
             %% Banner is first in file with existing break - no leading lines
             concat(concat(comments_to_algebra(Comments), line(4)), Doc);
-            
+
         true when HasBanner ->
             %% There's already a break, so add 3 more lines to get 4 total
             concat(
@@ -1440,7 +1455,7 @@ combine_pre_comments(Comments, Meta, Doc) ->
         false when HasBanner andalso IsFirstInFile ->
             %% Banner is first in file with no break - no leading lines
             concat(concat(comments_to_algebra(Comments), line(4)), Doc);
-            
+
         false when HasBanner ->
             %% No existing break, so add all 4 lines
             concat(
@@ -1486,7 +1501,6 @@ comments_to_algebra(Comments) ->
 comment_to_algebra({comment, _Meta, Lines}) ->
     LinesD = lists:map(fun erlfmt_algebra:string/1, Lines),
     fold_doc(fun erlfmt_algebra:line/2, LinesD).
-
 
 
 
