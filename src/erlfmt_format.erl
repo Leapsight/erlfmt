@@ -1502,20 +1502,22 @@ comment_to_algebra({comment, _Meta, Lines}) ->
     LinesD = lists:map(fun erlfmt_algebra:string/1, Lines),
     fold_doc(fun erlfmt_algebra:line/2, LinesD).
 
-
-
-
 %% Detect comment banners (section dividers with === patterns)
 
-
-
-is_comment_banner({comment, _Meta, [Line]}) ->
-    %% Single-line comments that contain at least 3 consecutive = characters
-    string:find(Line, "===") =/= nomatch;
-
 is_comment_banner({comment, _Meta, Lines}) ->
-    %% Multi-line comments where any line contains at least 3 consecutive = characters
-    lists:any(fun(Line) -> string:find(Line, "===") =/= nomatch end, Lines).
+    %% A comment is a banner if:
+    %% 1. It has exactly 3 lines (delimiter, title, delimiter)
+    %% 2. First and last lines contain "==="
+    %% 3. Middle line(s) don't contain "==="
+    case Lines of
+        [First, Middle, Last] ->
+            string:find(First, "===") =/= nomatch andalso
+                string:find(Last, "===") =/= nomatch andalso
+                string:find(Middle, "===") =:= nomatch;
+
+        _ ->
+            false
+    end.
 
 comments_with_pre_dot(Meta) ->
     {
