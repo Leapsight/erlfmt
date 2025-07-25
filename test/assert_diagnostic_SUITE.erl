@@ -54,12 +54,16 @@ test_equal(_) ->
 test_expected_is_longer(_) ->
     L0 = [coffee, brownie],
     L1 = [coffee],
-    check_list_equal_message(L0, L1, ["Actual list lacks 1 expected items: [brownie]"]).
+    check_list_equal_message(L0, L1, [
+        "Actual list lacks 1 expected items: [brownie]"
+    ]).
 
 test_actual_is_longer(_) ->
     L0 = [breath],
     L1 = [breath, explode],
-    check_list_equal_message(L0, L1, ["Actual list has 1 unexpected items: [explode]"]).
+    check_list_equal_message(L0, L1, [
+        "Actual list has 1 unexpected items: [explode]"
+    ]).
 
 test_one_distinc_item(_) ->
     L0 = [sea, sax, sun],

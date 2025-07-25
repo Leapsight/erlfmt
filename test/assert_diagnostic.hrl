@@ -50,12 +50,18 @@
     [
         ?assert(
             maps:is_key(K, A),
-            assert_diagnostic:format("Item ~p => ~p not in expected ~p", [K, V, A])
+            assert_diagnostic:format("Item ~p => ~p not in expected ~p", [
+                K, V, A
+            ])
         )
      || {K, V} <- maps:to_list(B)
     ],
     [
-        ?assertEqual(maps:get(K, A), maps:get(K, B), assert_diagnostic:format("For key ~p", [K]))
+        ?assertEqual(
+            maps:get(K, A),
+            maps:get(K, B),
+            assert_diagnostic:format("For key ~p", [K])
+        )
      || K <- maps:keys(A)
     ]
 ).

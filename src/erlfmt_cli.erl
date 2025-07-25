@@ -25,7 +25,8 @@
     range = undefined :: undefined | {pos_integer(), pos_integer()}
 }).
 
--type parsed() :: {format, list(), list(), #config{}} | help | version | {error, string()}.
+-type parsed() ::
+    {format, list(), list(), #config{}} | help | version | {error, string()}.
 
 opts() ->
     [
@@ -77,7 +78,8 @@ do(Name, Opts) ->
 do(Name, PreferOpts, DefaultOpts) ->
     PreferParsed = parse_opts(PreferOpts),
     DefaultParsed = parse_opts(DefaultOpts),
-    SpecifiedFiles = specified_files(PreferOpts) ++ specified_files(DefaultOpts),
+    SpecifiedFiles =
+        specified_files(PreferOpts) ++ specified_files(DefaultOpts),
     Parsed =
         case {PreferParsed, DefaultParsed, SpecifiedFiles} of
             {
@@ -88,16 +90,24 @@ do(Name, PreferOpts, DefaultOpts) ->
                 %% Do not provide default files if we are writing to stdout
                 resolve_parsed(PreferParsed, DefaultParsed);
 
-            {{format, [], _, _}, {format, [], _, _}, _} when SpecifiedFiles =/= [] ->
-                io:format(standard_error, "no files matching ~p~n", [SpecifiedFiles]),
+            {{format, [], _, _}, {format, [], _, _}, _} when
+                SpecifiedFiles =/= []
+            ->
+                io:format(standard_error, "no files matching ~p~n", [
+                    SpecifiedFiles
+                ]),
                 help;
 
             {_, _, []} ->
                 %% no files means we should provide default files
                 DefaultFiles = parse_opts([
-                    {files, ["{src,include,test}/*.{hrl,erl,app.src}", "rebar.config"]}
+                    {files, [
+                        "{src,include,test}/*.{hrl,erl,app.src}", "rebar.config"
+                    ]}
                 ]),
-                resolve_parsed(PreferParsed, resolve_parsed(DefaultParsed, DefaultFiles));
+                resolve_parsed(
+                    PreferParsed, resolve_parsed(DefaultParsed, DefaultFiles)
+                );
 
             _ ->
                 resolve_parsed(PreferParsed, DefaultParsed)
@@ -112,7 +122,9 @@ with_parsed(Name, Config) ->
         unprotected_with_config(Name, Config)
     catch
         Kind:Reason:Stack ->
-            io:format(standard_error, "~s Internal Error~n~s:~p~n~p~n", [Name, Kind, Reason, Stack]),
+            io:format(standard_error, "~s Internal Error~n~s:~p~n~p~n", [
+                Name, Kind, Reason, Stack
+            ]),
             erlang:halt(127)
     end.
 
@@ -154,17 +166,27 @@ unprotected_with_config(Name, ParsedConfig) ->
         {format, Files0, Excludes, Config} ->
             case set_difference(Files0, Excludes) of
                 [] ->
-                    io:put_chars(standard_error, ["no files provided to format\n\n"]),
+                    io:put_chars(standard_error, [
+                        "no files provided to format\n\n"
+                    ]),
                     getopt:usage(opts(), Name),
                     erlang:halt(2);
 
                 Files ->
                     case Config#config.out of
-                        check -> io:format(standard_error, "Checking formatting...~n", []);
+                        check ->
+                            io:format(
+                                standard_error, "Checking formatting...~n", []
+                            );
 
-                        _ -> ok
+                        _ ->
+                            ok
                     end,
-                    case parallel(fun(File) -> format_file(File, Config) end, Files) of
+                    case
+                        parallel(
+                            fun(File) -> format_file(File, Config) end, Files
+                        )
+                    of
                         ok ->
                             case Config#config.out of
                                 check ->
@@ -207,7 +229,13 @@ unprotected_with_config(Name, ParsedConfig) ->
     end.
 
 format_file(FileName, Config) ->
-    #config{pragma = Pragma, print_width = PrintWidth, verbose = Verbose, out = Out, range = Range} =
+    #config{
+        pragma = Pragma,
+        print_width = PrintWidth,
+        verbose = Verbose,
+        out = Out,
+        range = Range
+    } =
         Config,
     case Verbose of
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
@@ -238,7 +266,11 @@ format_file(FileName, Config) ->
         end,
     case {Verbose, Result} of
         {true, {skip, _}} ->
-            io:format(standard_error, "Skipping ~s because of missing @format pragma\n", [FileName]);
+            io:format(
+                standard_error,
+                "Skipping ~s because of missing @format pragma\n",
+                [FileName]
+            );
 
         _ ->
             ok
@@ -285,7 +317,9 @@ write_formatted(FileName, Formatted, Out) ->
     end.
 
 write_file(OutFileName, FormattedBin) ->
-    case file:write_file(OutFileName, unicode:characters_to_binary(FormattedBin)) of
+    case
+        file:write_file(OutFileName, unicode:characters_to_binary(FormattedBin))
+    of
         ok ->
             ok;
 
@@ -363,7 +397,9 @@ parse_opts([help | _Rest], _Files, _Exclude, _Config) ->
 parse_opts([version | _Rest], _Files, _Exclude, _Config) ->
     version;
 
-parse_opts([write | _Rest], _Files, _Exclude, #config{out = Out}) when Out =/= standard_out ->
+parse_opts([write | _Rest], _Files, _Exclude, #config{out = Out}) when
+    Out =/= standard_out
+->
     {error, "--write or replace mode can't be combined check mode"};
 
 parse_opts([write | Rest], Files, Exclude, Config) ->
@@ -380,7 +416,9 @@ parse_opts([{out, Path} | Rest], Files, Exclude, Config) ->
 parse_opts([verbose | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{verbose = true});
 
-parse_opts([check | _Rest], _Files, _Exclude, #config{out = Out}) when Out =/= standard_out ->
+parse_opts([check | _Rest], _Files, _Exclude, #config{out = Out}) when
+    Out =/= standard_out
+->
     {error, "--check mode can't be combined write or replace mode"};
 
 parse_opts([check | Rest], Files, Exclude, Config) ->
@@ -390,28 +428,34 @@ parse_opts([{print_width, Value} | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{print_width = Value});
 
 parse_opts([require_pragma | _Rest], _Files, _Exclude, #config{pragma = insert}) ->
-    {error, "Cannot use both --insert-pragma and --require-pragma options together."};
+    {error,
+        "Cannot use both --insert-pragma and --require-pragma options together."};
 
 parse_opts([require_pragma | _Rest], _Files, _Exclude, #config{pragma = delete}) ->
-    {error, "Cannot use both --delete-pragma and --require-pragma options together."};
+    {error,
+        "Cannot use both --delete-pragma and --require-pragma options together."};
 
 parse_opts([require_pragma | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{pragma = require});
 
 parse_opts([insert_pragma | _Rest], _Files, _Exclude, #config{pragma = require}) ->
-    {error, "Cannot use both --insert-pragma and --require-pragma options together."};
+    {error,
+        "Cannot use both --insert-pragma and --require-pragma options together."};
 
 parse_opts([insert_pragma | _Rest], _Files, _Exclude, #config{pragma = delete}) ->
-    {error, "Cannot use both --insert-pragma and --delete-pragma options together."};
+    {error,
+        "Cannot use both --insert-pragma and --delete-pragma options together."};
 
 parse_opts([insert_pragma | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{pragma = insert});
 
 parse_opts([delete_pragma | _Rest], _Files, _Exclude, #config{pragma = insert}) ->
-    {error, "Cannot use both --insert-pragma and --delete-pragma options together."};
+    {error,
+        "Cannot use both --insert-pragma and --delete-pragma options together."};
 
 parse_opts([delete_pragma | _Rest], _Files, _Exclude, #config{pragma = require}) ->
-    {error, "Cannot use both --require-pragma and --delete-pragma options together."};
+    {error,
+        "Cannot use both --require-pragma and --delete-pragma options together."};
 
 parse_opts([delete_pragma | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{pragma = delete});
@@ -430,7 +474,8 @@ parse_opts([{range, String} | Rest], Files, Exclude, Config) ->
                 [X, Y];
 
             _ ->
-                {error, "Range: Expected 1 argument (single line) or 2 (start, end)."}
+                {error,
+                    "Range: Expected 1 argument (single line) or 2 (start, end)."}
         end,
     case Range3 of
         [Start, End] when Start > End ->
@@ -449,7 +494,9 @@ parse_opts([{files, NewFiles} | Rest], Files, Exclude, Config) ->
 parse_opts([{exclude_files, NewExcludes} | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, expand_files(NewExcludes, Exclude), Config);
 
-parse_opts([], [stdin], _Exclude, #config{out = Out}) when Out =/= standard_out, Out =/= check ->
+parse_opts([], [stdin], _Exclude, #config{out = Out}) when
+    Out =/= standard_out, Out =/= check
+->
     {error, "stdin mode can't be combined with write options"};
 
 parse_opts([], [stdin], [], Config) ->
@@ -587,7 +634,9 @@ parallel(Fun, List) ->
 parallel_loop(_, [], _, [], ReducedResult) ->
     ReducedResult;
 
-parallel_loop(Fun, [Elem | Rest], N, Refs, ReducedResult) when length(Refs) < N ->
+parallel_loop(Fun, [Elem | Rest], N, Refs, ReducedResult) when
+    length(Refs) < N
+->
     {_, Ref} = erlang:spawn_monitor(fun() -> exit(Fun(Elem)) end),
     parallel_loop(Fun, Rest, N, [Ref | Refs], ReducedResult);
 

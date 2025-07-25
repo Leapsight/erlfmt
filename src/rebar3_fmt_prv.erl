@@ -46,7 +46,9 @@ do(State) ->
             erlfmt_cli:do("rebar3 fmt", ArgOpts, ConfigOpts);
 
         {ArgOpts, ExtraFiles} ->
-            erlfmt_cli:do("rebar3 fmt", ArgOpts, ConfigOpts ++ [{files, ExtraFiles}])
+            erlfmt_cli:do(
+                "rebar3 fmt", ArgOpts, ConfigOpts ++ [{files, ExtraFiles}]
+            )
     end,
     {ok, State}.
 

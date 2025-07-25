@@ -111,7 +111,9 @@ init_per_group(_GroupName, Config) ->
 end_per_group(_GroupName, _Config) ->
     ok.
 
-init_per_testcase(Maybe, Config) when Maybe =:= maybe_expression; Maybe =:= maybe_incomplete ->
+init_per_testcase(Maybe, Config) when
+    Maybe =:= maybe_expression; Maybe =:= maybe_incomplete
+->
     case has_feature(maybe_expr, Config) of
         true -> Config;
 
@@ -1735,7 +1737,9 @@ binary(Config) when is_list(Config) ->
     ?assertSame("<<(1), 1>>\n"),
     ?assertSame("<<+1:5/integer-unit:8>>\n"),
     ?assertSame("<<\"żółć\"/utf8>>\n"),
-    ?assertFormat("<<1/float,<<22,33>>/binary>>", "<<1/float, <<22, 33>>/binary>>\n"),
+    ?assertFormat(
+        "<<1/float,<<22,33>>/binary>>", "<<1/float, <<22, 33>>/binary>>\n"
+    ),
     ?assertFormat(
         "<<1/float,<<222,333>>>>",
         "<<1/float,\n"
@@ -2247,7 +2251,9 @@ map_comprehension(Config) when is_list(Config) ->
         "}\n",
         25
     ),
-    ?assertFormat("#{A => A || A := B <- Map,}\n", "#{A => A || A := B <- Map}\n").
+    ?assertFormat(
+        "#{A => A || A := B <- Map,}\n", "#{A => A || A := B <- Map}\n"
+    ).
 
 binary_comprehension(Config) when is_list(Config) ->
     ?assertFormat("<<X||X<-List>>", "<<X || X <- List>>\n"),
@@ -4116,7 +4122,9 @@ define(Config) when is_list(Config) ->
         "        X\n"
         ").\n"
     ),
-    ?assertSame("-define(ANY_MODE(Mode), Mode when Mode =:= inline; Mode =:= async).\n"),
+    ?assertSame(
+        "-define(ANY_MODE(Mode), Mode when Mode =:= inline; Mode =:= async).\n"
+    ),
     ?assertSame("-define(CATCH, C:E:S).\n"),
     ?assertFormat("-define(FOO(A,), A).\n", "-define(FOO(A), A).\n").
 
@@ -4437,16 +4445,28 @@ comment(Config) when is_list(Config) ->
     ).
 
 doc_attributes(Config) when is_list(Config) ->
-    ?assertSame("-moduledoc \"Test\".\n-moduledoc #{since => <<\"1.0.0\">>}.\n"),
+    ?assertSame(
+        "-moduledoc \"Test\".\n-moduledoc #{since => <<\"1.0.0\">>}.\n"
+    ),
     ?assertSame("-moduledoc \"\"\"\nTest\nMultiline\n\"\"\".\n"),
-    ?assertSame("-doc \"Test\".\n-doc #{since => <<\"1.0.0\">>}.\ntest() -> ok.\n"),
-    ?assertSame("-doc \"Test\".\n-doc #{since => <<\"1.0.0\">>}.\n-type t() :: ok.\n").
+    ?assertSame(
+        "-doc \"Test\".\n-doc #{since => <<\"1.0.0\">>}.\ntest() -> ok.\n"
+    ),
+    ?assertSame(
+        "-doc \"Test\".\n-doc #{since => <<\"1.0.0\">>}.\n-type t() :: ok.\n"
+    ).
 
 doc_macros(Config) when is_list(Config) ->
     %% Doc Attributes as macros is a common pattern for OTP < 27 compatibility.
-    ?assertSame("?MODULEDOC(\"Test\").\n?MODULEDOC(#{since => <<\"1.0.0\">>}).\n"),
-    ?assertSame("?DOC(\"Test\").\n?DOC(#{since => <<\"1.0.0\">>}).\ntest() -> ok.\n"),
-    ?assertSame("?DOC(\"Test\").\n?DOC(#{since => <<\"1.0.0\">>}).\n-type t() :: ok.\n").
+    ?assertSame(
+        "?MODULEDOC(\"Test\").\n?MODULEDOC(#{since => <<\"1.0.0\">>}).\n"
+    ),
+    ?assertSame(
+        "?DOC(\"Test\").\n?DOC(#{since => <<\"1.0.0\">>}).\ntest() -> ok.\n"
+    ),
+    ?assertSame(
+        "?DOC(\"Test\").\n?DOC(#{since => <<\"1.0.0\">>}).\n-type t() :: ok.\n"
+    ).
 
 incomplete(Config) when is_list(Config) ->
     ?assertSame(

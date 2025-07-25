@@ -148,7 +148,9 @@ test_strict_break(Config) when is_list(Config) ->
     ?assertEqual(<<"_">>, render(break(<<"_">>), 80)),
     ?assertEqual(
         <<"foo\nbar\nbaz">>,
-        render(break(<<"foo">>, <<" ">>, break(<<"bar">>, <<" ">>, <<"baz">>)), 10)
+        render(
+            break(<<"foo">>, <<" ">>, break(<<"bar">>, <<" ">>, <<"baz">>)), 10
+        )
     ).
 
 test_flex_break(Config) when is_list(Config) ->
@@ -159,7 +161,9 @@ test_flex_break(Config) when is_list(Config) ->
     ?assertEqual(
         <<"foo bar\nbaz">>,
         render(
-            flex_break(<<"foo">>, <<" ">>, flex_break(<<"bar">>, <<" ">>, <<"baz">>)),
+            flex_break(
+                <<"foo">>, <<" ">>, flex_break(<<"bar">>, <<" ">>, <<"baz">>)
+            ),
             10
         )
     ),
@@ -168,7 +172,9 @@ test_flex_break(Config) when is_list(Config) ->
         {doc_cons, <<"a">>, {doc_cons, {doc_break, <<"->">>, flex}, <<"b">>}},
         flex_break(<<"a">>, <<"->">>, <<"b">>)
     ),
-    ?assertEqual(flex_break(<<"a">>, <<"b">>), flex_break(<<"a">>, <<" ">>, <<"b">>)).
+    ?assertEqual(
+        flex_break(<<"a">>, <<"b">>), flex_break(<<"a">>, <<" ">>, <<"b">>)
+    ).
 
 test_break(Config) when is_list(Config) ->
     ?assertEqual(
@@ -178,7 +184,9 @@ test_break(Config) when is_list(Config) ->
     ?assertEqual(break(<<"a">>, <<"b">>), break(<<"a">>, <<" ">>, <<"b">>)).
 
 test_space(Config) when is_list(Config) ->
-    ?assertEqual({doc_string, [<<"a">>, <<" ">> | <<"b">>], 3}, space(<<"a">>, <<"b">>)),
+    ?assertEqual(
+        {doc_string, [<<"a">>, <<" ">> | <<"b">>], 3}, space(<<"a">>, <<"b">>)
+    ),
 
     ?assertEqual(<<"a b">>, render(space(<<"a">>, <<"b">>), 80)).
 
@@ -195,8 +203,12 @@ test_break_nest(Config) when is_list(Config) ->
     ?assertEqual(empty(), nest(empty(), 0, break)),
 
     ?assertEqual(<<"a">>, render(nest(<<"a">>, 1, break), 80)),
-    ?assertEqual(<<"a\n b">>, render(nest(break(<<"a">>, <<"b">>), 1, break), 2)),
-    ?assertEqual(<<"a\nb">>, render(nest(line(<<"a">>, <<"b">>), 1, break), 20)).
+    ?assertEqual(
+        <<"a\n b">>, render(nest(break(<<"a">>, <<"b">>), 1, break), 2)
+    ),
+    ?assertEqual(
+        <<"a\nb">>, render(nest(line(<<"a">>, <<"b">>), 1, break), 20)
+    ).
 
 test_line(Config) when is_list(Config) ->
     ?assertEqual(
@@ -207,7 +219,9 @@ test_line(Config) when is_list(Config) ->
 
     ?assertEqual(
         <<"aaa bbb\nccc ddd">>,
-        render(line(break(<<"aaa">>, <<"bbb">>), break(<<"ccc">>, <<"ddd">>)), 10)
+        render(
+            line(break(<<"aaa">>, <<"bbb">>), break(<<"ccc">>, <<"ddd">>)), 10
+        )
     ),
     ?assertEqual(<<"a\n\nb">>, render(concat([<<"a">>, line(2), <<"b">>]), 80)).
 
@@ -215,7 +229,9 @@ test_group(Config) when is_list(Config) ->
     ?assertEqual({doc_group, <<"ab">>}, group(<<"ab">>)),
     ?assertEqual({doc_group, empty()}, group(empty())),
 
-    Doc = concat(break(break(break(<<"hello">>, <<"a">>), <<"b">>), <<"c">>), <<"d">>),
+    Doc = concat(
+        break(break(break(<<"hello">>, <<"a">>), <<"b">>), <<"c">>), <<"d">>
+    ),
     ?assertEqual(<<"hello\na\nb\ncd">>, render(group(Doc), 5)).
 
 test_force_and_cancel(Config) when is_list(Config) ->
@@ -224,8 +240,12 @@ test_force_and_cancel(Config) when is_list(Config) ->
     ?assertEqual({doc_fits, <<"ab">>, enabled}, next_break_fits(<<"ab">>)),
     ?assertEqual({doc_fits, empty(), enabled}, next_break_fits(empty())),
 
-    ?assertEqual({doc_fits, <<"ab">>, disabled}, next_break_fits(<<"ab">>, disabled)),
-    ?assertEqual({doc_fits, empty(), disabled}, next_break_fits(empty(), disabled)),
+    ?assertEqual(
+        {doc_fits, <<"ab">>, disabled}, next_break_fits(<<"ab">>, disabled)
+    ),
+    ?assertEqual(
+        {doc_fits, empty(), disabled}, next_break_fits(empty(), disabled)
+    ),
 
     Doc = concat(
         force_breaks(),
@@ -255,7 +275,8 @@ test_infinite_width(Config) when is_list(Config) ->
         )
     ),
     ?assertEqual(
-        <<Str/binary, ";", Str/binary, ";", Str/binary, ";", Str/binary, ";", Str/binary>>,
+        <<Str/binary, ";", Str/binary, ";", Str/binary, ";", Str/binary, ";",
+            Str/binary>>,
         render(Doc, infinity)
     ).
 
@@ -263,7 +284,9 @@ test_concat(Config) when is_list(Config) ->
     ?assertEqual(<<"foo">>, render(concat(empty(), <<"foo">>), 80)).
 
 test_docs(Config) when is_list(Config) ->
-    ?assertEqual(<<"a b">>, render(group(break(<<"a">>, <<" ">>, <<"b">>)), 80)),
+    ?assertEqual(
+        <<"a b">>, render(group(break(<<"a">>, <<" ">>, <<"b">>)), 80)
+    ),
 
     % A break inserts a break between two documents. A group
     % indicates a document that must fit the current line, otherwise
@@ -310,11 +333,19 @@ test_docs(Config) when is_list(Config) ->
     ),
     ?assertEqual(
         <<"aaaaaaaaaaaaaaaaaaaa\nb">>,
-        render(group(concat([binary:copy(<<"a">>, 20), break(<<"\t">>), <<"b">>])), 10)
+        render(
+            group(concat([binary:copy(<<"a">>, 20), break(<<"\t">>), <<"b">>])),
+            10
+        )
     ),
 
-    ?assertEqual(<<"hello world">>, render(break(<<"hello">>, <<"world">>), 80)),
-    ?assertEqual(<<"hello\tworld">>, render(break(<<"hello">>, <<"\t">>, <<"world">>), 80)),
+    ?assertEqual(
+        <<"hello world">>, render(break(<<"hello">>, <<"world">>), 80)
+    ),
+    ?assertEqual(
+        <<"hello\tworld">>,
+        render(break(<<"hello">>, <<"\t">>, <<"world">>), 80)
+    ),
 
     Doc1 = group(
         concat(
@@ -325,12 +356,16 @@ test_docs(Config) when is_list(Config) ->
     ?assertEqual(<<"Hello, A B">>, render(Doc1, 80)),
     ?assertEqual(<<"Hello,\nA\nB">>, render(Doc1, 6)),
 
-    ?assertEqual(<<"Hughes Wadler">>, render(space(<<"Hughes">>, <<"Wadler">>), 5)),
+    ?assertEqual(
+        <<"Hughes Wadler">>, render(space(<<"Hughes">>, <<"Wadler">>), 5)
+    ),
     ?assertEqual(
         <<"Hughes\nWadler">>,
         render(concat(concat(<<"Hughes">>, line()), <<"Wadler">>), 80)
     ),
-    ?assertEqual(<<"Hughes\nWadler">>, render(line(<<"Hughes">>, <<"Wadler">>), 80)),
+    ?assertEqual(
+        <<"Hughes\nWadler">>, render(line(<<"Hughes">>, <<"Wadler">>), 80)
+    ),
 
     ?assertEqual(
         <<"A!B!C">>,

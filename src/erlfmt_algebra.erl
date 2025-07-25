@@ -183,12 +183,18 @@ string(String) ->
 -spec concat(doc(), doc()) -> doc().
 
 concat(Left, Right) when is_binary(Left), is_binary(Right) ->
-    #doc_string{string = [Left | Right], length = byte_size(Left) + byte_size(Right)};
+    #doc_string{
+        string = [Left | Right], length = byte_size(Left) + byte_size(Right)
+    };
 
-concat(#doc_string{string = String, length = Length}, Right) when is_binary(Right) ->
+concat(#doc_string{string = String, length = Length}, Right) when
+    is_binary(Right)
+->
     #doc_string{string = [String | Right], length = Length + byte_size(Right)};
 
-concat(Left, #doc_string{string = String, length = Length}) when is_binary(Left) ->
+concat(Left, #doc_string{string = String, length = Length}) when
+    is_binary(Left)
+->
     #doc_string{string = [Left | String], length = Length + byte_size(Left)};
 
 concat(#doc_string{} = Left, #doc_string{} = Right) ->
@@ -227,10 +233,14 @@ nest(Doc, Level) ->
 nest(Doc, 0, _Mode) when ?is_doc(Doc) ->
     Doc;
 
-nest(Doc, Indent, always) when ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0 ->
+nest(Doc, Indent, always) when
+    ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0
+->
     #doc_nest{doc = Doc, indent = Indent, always_or_break = always};
 
-nest(Doc, Indent, break) when ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0 ->
+nest(Doc, Indent, break) when
+    ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0
+->
     #doc_nest{doc = Doc, indent = Indent, always_or_break = break}.
 
 
@@ -294,7 +304,9 @@ next_break_fits(Doc) ->
 
 -spec next_break_fits(doc(), enabled | disabled) -> doc().
 
-next_break_fits(Doc, Mode) when ?is_doc(Doc), Mode == enabled orelse Mode == disabled ->
+next_break_fits(Doc, Mode) when
+    ?is_doc(Doc), Mode == enabled orelse Mode == disabled
+->
     #doc_fits{group = Doc, enabled_or_disabled = Mode}.
 
 
@@ -487,7 +499,9 @@ fold_doc(Fun, [Doc | Docs]) ->
 % The document starts flat (without breaks) until a group is found.
 -spec format(doc(), non_neg_integer() | infinity) -> unicode:chardata().
 
-format(Doc, Width) when ?is_doc(Doc) andalso (Width == infinity orelse Width >= 0) ->
+format(Doc, Width) when
+    ?is_doc(Doc) andalso (Width == infinity orelse Width >= 0)
+->
     format(Width, 0, [{0, flat, Doc}]).
 
 %   Type representing the document mode to be rendered
@@ -502,7 +516,9 @@ format(Doc, Width) when ?is_doc(Doc) andalso (Width == infinity orelse Width >= 
 
 -type mode() :: flat | flat_no_break | break | break_no_flat.
 
--spec fits(Width :: integer(), Column :: integer(), HasBreaks :: boolean(), Entries) ->
+-spec fits(
+    Width :: integer(), Column :: integer(), HasBreaks :: boolean(), Entries
+) ->
     boolean()
 when
     Entries :: maybe_improper_list(
@@ -533,7 +549,9 @@ fits(Width, Column, HasBreaks, [
 ]) ->
     fits(Width, Column, HasBreaks, [{Indent, flat_no_break, X} | T]);
 
-fits(Width, Column, HasBreaks, [{Indent, flat_no_break, #doc_fits{group = X}} | T]) ->
+fits(Width, Column, HasBreaks, [
+    {Indent, flat_no_break, #doc_fits{group = X}} | T
+]) ->
     fits(Width, Column, HasBreaks, [{Indent, flat_no_break, X} | T]);
 
 %   ## Breaks no flat
@@ -584,7 +602,9 @@ fits(_, _, _, [{_, _, doc_force_breaks} | _]) ->
 fits(Width, Column, _, [{_, _, #doc_break{break = S}} | T]) ->
     fits(Width, Column + byte_size(S), true, T);
 
-fits(Width, Column, HasBreaks, [{Indent, M, #doc_nest{doc = X, always_or_break = break}} | T]) ->
+fits(Width, Column, HasBreaks, [
+    {Indent, M, #doc_nest{doc = X, always_or_break = break}} | T
+]) ->
     fits(Width, Column, HasBreaks, [{Indent, M, X} | T]);
 
 fits(Width, Column, HasBreaks, [{Indent, M, #doc_nest{doc = X, indent = J}} | T]) ->
@@ -597,7 +617,8 @@ fits(Width, Column, HasBreaks, [{Indent, M, #doc_group{group = X}} | T]) ->
     fits(Width, Column, HasBreaks, [{Indent, M, X} | {tail, HasBreaks, T}]).
 
 
--spec format(integer() | infinity, integer(), [{integer(), mode(), doc()}]) -> [binary()].
+-spec format(integer() | infinity, integer(), [{integer(), mode(), doc()}]) ->
+    [binary()].
 
 format(_, _, []) ->
     [];
@@ -625,16 +646,22 @@ format(Width, Column, [{Indent, M, #doc_fits{group = X}} | T]) ->
     format(Width, Column, [{Indent, M, X} | T]);
 
 %   # Flex breaks are not conditional to the mode
-format(Width, K0, [{Indent, M, #doc_break{break = S, flex_or_strict = flex}} | T]) ->
+format(Width, K0, [
+    {Indent, M, #doc_break{break = S, flex_or_strict = flex}} | T
+]) ->
     Column = K0 + byte_size(S),
-    case Width == infinity orelse M == flat orelse fits(Width, Column, true, T) of
+    case
+        Width == infinity orelse M == flat orelse fits(Width, Column, true, T)
+    of
         true -> [S | format(Width, Column, T)];
 
         false -> [indent(Indent) | format(Width, Indent, T)]
     end;
 
 %   # Strict breaks are conditional to the mode
-format(Width, Column, [{Indent, M, #doc_break{break = S, flex_or_strict = strict}} | T]) ->
+format(Width, Column, [
+    {Indent, M, #doc_break{break = S, flex_or_strict = strict}} | T
+]) ->
     case M of
         break -> [indent(Indent) | format(Width, Indent, T)];
 
@@ -642,7 +669,9 @@ format(Width, Column, [{Indent, M, #doc_break{break = S, flex_or_strict = strict
     end;
 
 %   # Nesting is conditional to the mode.
-format(Width, Column, [{Indent, M, #doc_nest{doc = X, indent = J, always_or_break = Nest}} | T]) ->
+format(Width, Column, [
+    {Indent, M, #doc_nest{doc = X, indent = J, always_or_break = Nest}} | T
+]) ->
     case Nest == always orelse (Nest == break andalso M == break) of
         true -> format(Width, Column, [{Indent + J, M, X} | T]);
 
@@ -652,7 +681,10 @@ format(Width, Column, [{Indent, M, #doc_nest{doc = X, indent = J, always_or_brea
 %   # Groups must do the fitting decision.
 format(Width, Column, [{Indent, _, #doc_group{group = X}} | T0]) ->
     {StringLength, T1} = peek_next_string_length(T0),
-    case Width == infinity orelse fits(Width - StringLength, Column, false, [{Indent, flat, X}]) of
+    case
+        Width == infinity orelse
+            fits(Width - StringLength, Column, false, [{Indent, flat, X}])
+    of
         true ->
             format(Width, Column, [{Indent, flat, X} | T1]);
 
@@ -674,10 +706,14 @@ peek_next_string_length(Stack) ->
     {0, Stack}.
 
 %% after a group breaks, we force next flex break to also break
-force_next_flex_break([{Indent, M, #doc_break{flex_or_strict = flex} = Break} | T]) ->
+force_next_flex_break([
+    {Indent, M, #doc_break{flex_or_strict = flex} = Break} | T
+]) ->
     [{Indent, M, Break#doc_break{flex_or_strict = strict}} | T];
 
-force_next_flex_break([{_, _, #doc_break{flex_or_strict = strict}} | _] = Stack) ->
+force_next_flex_break(
+    [{_, _, #doc_break{flex_or_strict = strict}} | _] = Stack
+) ->
     Stack;
 
 force_next_flex_break([{Indent, M, #doc_cons{left = Left, right = Right}} | T]) ->

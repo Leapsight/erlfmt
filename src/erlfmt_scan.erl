@@ -43,13 +43,18 @@
 -export_type([state/0, anno/0, token/0, comment/0, location/0]).
 
 -define(ERL_SCAN_OPTS, [
-    text, return_white_spaces, return_comments, {reserved_word_fun, fun reserved_word/1}
+    text,
+    return_white_spaces,
+    return_comments,
+    {reserved_word_fun, fun reserved_word/1}
 ]).
 -define(START_LOCATION, {1, 1}).
 
 -type inner() :: term().
 -type scan() :: fun(
-    (inner(), erl_anno:location()) -> {erl_scan:tokens_result() | {error, term()}, inner()}
+    (inner(), erl_anno:location()) -> {
+        erl_scan:tokens_result() | {error, term()}, inner()
+    }
 ).
 
 -record(state, {
@@ -110,7 +115,9 @@ continue(Scan, Inner0, Loc0, []) ->
     case Scan(Inner0, Loc0) of
         {{ok, [{'#', _}, {'!', _} | _] = Tokens0, Loc}, Inner} ->
             {ShebangTokens, Comments, Buffer} = split_shebang(Tokens0),
-            Shebang = unicode:characters_to_list(stringify_tokens(ShebangTokens)),
+            Shebang = unicode:characters_to_list(
+                stringify_tokens(ShebangTokens)
+            ),
             LastAnno = erl_anno:to_term(element(2, lists:last(ShebangTokens))),
             #{end_location := EndLoc} = atomic_anno(LastAnno),
             Anno = #{location => Loc0, end_location => EndLoc, text => Shebang},
@@ -139,7 +146,9 @@ continue(Scan, Inner0, Loc0, []) ->
 continue(Scan, Inner0, Loc0, Buffer0) ->
     case Scan(Inner0, Loc0) of
         {{ok, Tokens0, Loc}, Inner} ->
-            {Tokens, NodeTokens, Comments, Buffer} = split_tokens(Buffer0, Tokens0),
+            {Tokens, NodeTokens, Comments, Buffer} = split_tokens(
+                Buffer0, Tokens0
+            ),
             State = #state{
                 scan = Scan,
                 inner = Inner,
@@ -168,7 +177,8 @@ continue(Scan, Inner0, Loc0, Buffer0) ->
     end.
 
 
--spec read_rest(state()) -> {ok, string()} | {error, {erl_anno:location(), module(), term()}}.
+-spec read_rest(state()) ->
+    {ok, string()} | {error, {erl_anno:location(), module(), term()}}.
 
 read_rest(#state{inner = undefined}) ->
     %% reached EOF, no further nodes
@@ -244,7 +254,9 @@ split_shebang(Tokens) ->
 take_line(Tokens) ->
     lists:splitwith(fun(Token) -> not has_new_line(Token) end, Tokens).
 
-take_shebang_comments([{white_space, _, _}, {comment, _, "%%!" ++ _} = Comment0 | Rest]) ->
+take_shebang_comments([
+    {white_space, _, _}, {comment, _, "%%!" ++ _} = Comment0 | Rest
+]) ->
     {Comment, []} = collect_comments([], Comment0),
     {[Comment], drop_initial_white_space(Rest)};
 
@@ -296,10 +308,13 @@ split_tokens(Tokens, ExtraTokens0) ->
             {[], Tokens, Comments, ExtraTokens0};
 
         {TransformedTokens, Comments} ->
-            #{end_location := {LastLine, _}} = element(2, lists:last(TransformedTokens)),
+            #{end_location := {LastLine, _}} = element(
+                2, lists:last(TransformedTokens)
+            ),
             {ExtraComments, ExtraTokens, ExtraRest} =
                 split_extra(ExtraTokens0, LastLine, [], []),
-            {TransformedTokens, Tokens ++ ExtraTokens, Comments ++ ExtraComments, ExtraRest}
+            {TransformedTokens, Tokens ++ ExtraTokens,
+                Comments ++ ExtraComments, ExtraRest}
     end.
 
 split_tokens([{comment, Meta, _} = Comment0 | Rest0], Acc, CAcc) ->
@@ -316,8 +331,12 @@ split_tokens([{comment, Meta, _} = Comment0 | Rest0], Acc, CAcc) ->
 split_tokens([{white_space, _, _} | Rest], Acc, CAcc) ->
     split_tokens(Rest, Acc, CAcc);
 
-split_tokens([{Atomic, Meta, Value} | Rest], Acc, CAcc) when ?IS_ATOMIC(Atomic) ->
-    split_tokens(Rest, [{Atomic, atomic_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
+split_tokens([{Atomic, Meta, Value} | Rest], Acc, CAcc) when
+    ?IS_ATOMIC(Atomic)
+->
+    split_tokens(
+        Rest, [{Atomic, atomic_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc
+    );
 
 split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
     Token = {Type, token_anno(erl_anno:to_term(Meta)), Value},
@@ -325,13 +344,17 @@ split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
 
 %% Keep the `text` value for if in case it's used as an attribute
 split_tokens([{Type, Meta} | Rest], Acc, CAcc) when Type =:= 'if' ->
-    split_tokens(Rest, [{Type, atomic_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
+    split_tokens(
+        Rest, [{Type, atomic_anno(erl_anno:to_term(Meta))} | Acc], CAcc
+    );
 
 split_tokens([{Type, Meta} | Rest], Acc, CAcc) when Type =:= 'dot' ->
     split_tokens(Rest, [{Type, dot_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
 
 split_tokens([{Type, Meta} | Rest], Acc, CAcc) ->
-    split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
+    split_tokens(
+        Rest, [{Type, token_anno(erl_anno:to_term(Meta))} | Acc], CAcc
+    );
 
 split_tokens([], Acc, CAcc) ->
     {lists:reverse(Acc), lists:reverse(CAcc)}.
@@ -364,7 +387,9 @@ collect_comments(Tokens, {comment, Meta, Text0}) ->
 collect_comments([{white_space, _, _} | Rest], Line, LastMeta, Acc) ->
     collect_comments(Rest, Line, LastMeta, Acc);
 
-collect_comments([{comment, Meta, Text0} = Comment | Rest], Line, LastMeta, Acc) ->
+collect_comments(
+    [{comment, Meta, Text0} = Comment | Rest], Line, LastMeta, Acc
+) ->
     Text = string:trim(Text0, trailing),
     case erl_anno:line(Meta) of
         NextLine when NextLine =:= Line + 1 ->
@@ -378,7 +403,11 @@ collect_comments(Other, _Line, LastMeta, Acc) ->
     {lists:reverse(Acc), LastMeta, Other}.
 
 atomic_anno([{text, Text}, {location, {Line, Col} = Location}]) ->
-    #{text => Text, location => Location, end_location => end_location(Text, Line, Col)}.
+    #{
+        text => Text,
+        location => Location,
+        end_location => end_location(Text, Line, Col)
+    }.
 
 token_anno([{text, Text}, {location, {Line, Col} = Location}]) ->
     #{location => Location, end_location => end_location(Text, Line, Col)};
@@ -386,7 +415,9 @@ token_anno([{text, Text}, {location, {Line, Col} = Location}]) ->
 token_anno({_Line, _Col} = Location) ->
     #{location => Location, end_location => Location}.
 
-comment_anno([{text, _}, {location, Location}], [{text, Text}, {location, {Line, Col}}]) ->
+comment_anno([{text, _}, {location, Location}], [
+    {text, Text}, {location, {Line, Col}}
+]) ->
     #{location => Location, end_location => end_location(Text, Line, Col)}.
 
 %% Special handling for dot tokens - we don't want to count final newline as part of the form
@@ -427,7 +458,9 @@ get_inner_line(Anno) ->
     element(1, get_anno(inner_location, Anno, get_anno(location, Anno))).
 
 get_inner_end_line(Anno) ->
-    element(1, get_anno(inner_end_location, Anno, get_anno(end_location, Anno))).
+    element(
+        1, get_anno(inner_end_location, Anno, get_anno(end_location, Anno))
+    ).
 
 get_anno(Key, Anno) when is_map(Anno) ->
     map_get(Key, Anno);
@@ -459,10 +492,14 @@ end_location([_ | String], Line, Column) ->
 range_anno(First, Last) ->
     put_anno(end_location, get_anno(end_location, Last), First).
 
-downgrade_maybe([{'maybe', Anno} | Rest]) -> [{atom, Anno, 'maybe'} | downgrade_maybe(Rest)];
+downgrade_maybe([{'maybe', Anno} | Rest]) ->
+    [{atom, Anno, 'maybe'} | downgrade_maybe(Rest)];
 
-downgrade_maybe([{'else', Anno} | Rest]) -> [{atom, Anno, 'else'} | downgrade_maybe(Rest)];
+downgrade_maybe([{'else', Anno} | Rest]) ->
+    [{atom, Anno, 'else'} | downgrade_maybe(Rest)];
 
-downgrade_maybe([Token | Rest]) -> [Token | downgrade_maybe(Rest)];
+downgrade_maybe([Token | Rest]) ->
+    [Token | downgrade_maybe(Rest)];
 
-downgrade_maybe([]) -> [].
+downgrade_maybe([]) ->
+    [].

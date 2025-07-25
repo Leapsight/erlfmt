@@ -136,7 +136,9 @@ smoke_test_stdio_unicode(Config) ->
     stdio_test("unicode.erl", "--require-pragma", Config).
 
 smoke_test_stdio_insert_pragma_without(Config) when is_list(Config) ->
-    Formatted = os:cmd("echo '-module(nopragma).' | " ++ escript() ++ " - --insert-pragma"),
+    Formatted = os:cmd(
+        "echo '-module(nopragma).' | " ++ escript() ++ " - --insert-pragma"
+    ),
     Expected =
         "%%% % @format\n"
         "\n"
@@ -145,14 +147,17 @@ smoke_test_stdio_insert_pragma_without(Config) when is_list(Config) ->
 
 smoke_test_stdio_delete_pragma(Config) when is_list(Config) ->
     Formatted = os:cmd(
-        "echo '%% @format\n\n-module(nopragma).' | " ++ escript() ++ " - --delete-pragma"
+        "echo '%% @format\n\n-module(nopragma).' | " ++ escript() ++
+            " - --delete-pragma"
     ),
     Expected =
         "-module(nopragma).\n",
     ?assertEqual(Expected, Formatted).
 
 smoke_test_stdio_delete_pragma_without(Config) when is_list(Config) ->
-    Formatted = os:cmd("echo '-module(nopragma).' | " ++ escript() ++ " - --delete-pragma"),
+    Formatted = os:cmd(
+        "echo '-module(nopragma).' | " ++ escript() ++ " - --delete-pragma"
+    ),
     Expected =
         "-module(nopragma).\n",
     ?assertEqual(Expected, Formatted).
@@ -209,10 +214,13 @@ smoke_test_stdio_insert_and_require_pragma(Config) when is_list(Config) ->
     DataDir = ?config(data_dir, Config),
     Path = filename:join(DataDir, "pragma.erl"),
     ErrorString = os:cmd(
-        "cat " ++ Path ++ " | " ++ escript() ++ " - --insert-pragma --require-pragma"
+        "cat " ++ Path ++ " | " ++ escript() ++
+            " - --insert-pragma --require-pragma"
     ),
     ?assert(
-        string:find(ErrorString, "Cannot use both --insert-pragma and --require-pragma") =/=
+        string:find(
+            ErrorString, "Cannot use both --insert-pragma and --require-pragma"
+        ) =/=
             nomatch
     ).
 
@@ -220,11 +228,13 @@ smoke_test_stdio_check(Config) when is_list(Config) ->
     DataDir = ?config(data_dir, Config),
     Same = os:cmd(
         "cat " ++
-            filename:join(DataDir, "attributes.erl") ++ " | " ++ escript() ++ " - " ++ "--check"
+            filename:join(DataDir, "attributes.erl") ++ " | " ++ escript() ++
+            " - " ++ "--check"
     ),
     ?assertMatch(nomatch, string:find(Same, "[warn]")),
     Warn = os:cmd(
-        "cat " ++ filename:join(DataDir, "comments.erl") ++ " | " ++ escript() ++ " - " ++ "--check"
+        "cat " ++ filename:join(DataDir, "comments.erl") ++ " | " ++ escript() ++
+            " - " ++ "--check"
     ),
     ?assertNotMatch(nomatch, string:find(Warn, "[warn]")),
     Skip = os:cmd(
@@ -241,7 +251,8 @@ noformat_pragma_file(Config) when is_list(Config) ->
 
 noformat_pragma(Config) when is_list(Config) ->
     Formatted = os:cmd(
-        "echo '%% @noformat\n\n%%% actual comment\n{ }.' | " ++ escript() ++ " -"
+        "echo '%% @noformat\n\n%%% actual comment\n{ }.' | " ++ escript() ++
+            " -"
     ),
     Expected =
         "%% @noformat\n"
@@ -280,10 +291,14 @@ range_check_partial(Config) when is_list(Config) ->
 stdio_test(FileName, Options, Config) ->
     DataDir = ?config(data_dir, Config),
     Path = filename:join(DataDir, FileName),
-    Formatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - " ++ Options),
+    Formatted = os:cmd(
+        "cat " ++ Path ++ " | " ++ escript() ++ " - " ++ Options
+    ),
     % ?assertEqual(toto, Path),
     {ok, Expected} = file:read_file(Path),
-    assert_diagnostic:assert_binary_match(Expected, unicode:characters_to_binary(Formatted)).
+    assert_diagnostic:assert_binary_match(
+        Expected, unicode:characters_to_binary(Formatted)
+    ).
 
 exclude_test(Files, Exclude) ->
     WithBroken = os:cmd(

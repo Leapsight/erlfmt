@@ -35,10 +35,14 @@
 -export_type([error_info/0, config_option/0, config/0, pragma/0]).
 
 -type error_info() :: {
-    file:name_all(), erl_anno:location() | erlfmt_scan:anno(), module(), Reason :: any()
+    file:name_all(),
+    erl_anno:location() | erlfmt_scan:anno(),
+    module(),
+    Reason :: any()
 }.
 -type pragma() :: require | insert | delete | ignore.
--type config_option() :: {pragma, pragma()} | {print_width, pos_integer()} | verbose.
+-type config_option() ::
+    {pragma, pragma()} | {print_width, pos_integer()} | verbose.
 -type config() :: [config_option()].
 
 %% needed because of getopt being weird
@@ -62,7 +66,9 @@ main(Argv) ->
             erlfmt_cli:do("erlfmt", [{files, ExtraFiles} | ArgOpts]);
 
         {error, Error} ->
-            io:put_chars(standard_error, [getopt:format_error(Opts, Error), "\n\n"]),
+            io:put_chars(standard_error, [
+                getopt:format_error(Opts, Error), "\n\n"
+            ]),
             getopt:usage(Opts, "erlfmt"),
             erlang:halt(2)
     end.
@@ -77,7 +83,9 @@ init(State) ->
 
 %% API entry point
 -spec format_file(file:name_all() | stdin, config()) ->
-    {ok, [unicode:chardata()], [error_info()]} | {skip, string()} | {error, error_info()}.
+    {ok, [unicode:chardata()], [error_info()]}
+    | {skip, string()}
+    | {error, error_info()}.
 
 format_file(FileName, Options) ->
     Range = proplists:get_value(range, Options),
@@ -90,12 +98,16 @@ format_file(FileName, Options) ->
             % Remove 'range' property: when applicable we pass explicitly the range instead.
             % Also, match specifition of format_string_range.
             Options2 = proplists:delete(range, Options),
-            format_file_range(FileName, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2)
+            format_file_range(
+                FileName, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2
+            )
     end.
 
 
 -spec format_file_full(file:name_all() | stdin, config()) ->
-    {ok, [unicode:chardata()], [error_info()]} | {skip, string()} | {error, error_info()}.
+    {ok, [unicode:chardata()], [error_info()]}
+    | {skip, string()}
+    | {error, error_info()}.
 
 format_file_full(FileName, Options) ->
     PrintWidth = proplists:get_value(print_width, Options, ?DEFAULT_WIDTH),
@@ -115,9 +127,11 @@ format_file_full(FileName, Options) ->
                 verify_nodes(FileName, Nodes, Formatted),
                 VerboseWarnings =
                     case proplists:get_bool(verbose, Options) of
-                        true -> check_line_lengths(FileName, PrintWidth, Formatted);
+                        true ->
+                            check_line_lengths(FileName, PrintWidth, Formatted);
 
-                        false -> []
+                        false ->
+                            []
                     end,
                 {ok, Formatted, Warnings ++ VerboseWarnings};
 
@@ -145,7 +159,9 @@ format_string(String, Options) ->
             % Remove 'range' property: when applicable we pass explicitly the range instead.
             % Also, match specifition of format_string_range.
             Options2 = proplists:delete(range, Options),
-            format_string_range(String, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2)
+            format_string_range(
+                String, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2
+            )
     end.
 
 
@@ -171,11 +187,14 @@ format_string_full(String, Options) ->
                 verify_nodes(Filename, Nodes, Formatted),
                 VerboseWarnings =
                     case proplists:get_bool(verbose, Options) of
-                        true -> check_line_lengths(Filename, PrintWidth, Formatted);
+                        true ->
+                            check_line_lengths(Filename, PrintWidth, Formatted);
 
-                        false -> []
+                        false ->
+                            []
                     end,
-                {ok, unicode:characters_to_list(Formatted), Warnings ++ VerboseWarnings};
+                {ok, unicode:characters_to_list(Formatted),
+                    Warnings ++ VerboseWarnings};
 
             {skip, RawString} ->
                 {skip, RawString}
@@ -234,7 +253,11 @@ insert_pragma_node(Node) ->
         case PreComments of
             [] ->
                 Loc = erlfmt_scan:get_anno(location, Node),
-                [{comment, #{location => Loc, end_location => Loc}, ["%%% % @format", ""]}];
+                [
+                    {comment, #{location => Loc, end_location => Loc}, [
+                        "%%% % @format", ""
+                    ]}
+                ];
 
             _ ->
                 {comment, Loc, LastComments} = lists:last(PreComments),
@@ -264,7 +287,9 @@ remove_pragma_nodes([Node | Nodes]) ->
     end.
 
 remove_pragma_node(Node0) ->
-    {PreComments0, _, PostComments0} = erlfmt_format:comments_with_pre_dot(Node0),
+    {PreComments0, _, PostComments0} = erlfmt_format:comments_with_pre_dot(
+        Node0
+    ),
     PreComments = remove_pragma_comment_blocks(PreComments0),
     PostComments = remove_pragma_comment_blocks(PostComments0),
     Node = erlfmt_scan:put_anno(pre_comments, PreComments, Node0),
@@ -275,9 +300,11 @@ remove_pragma_comment_blocks([]) ->
 
 remove_pragma_comment_blocks([{comment, Loc, Comments} | Rest]) ->
     case remove_pragma_comment_block(Comments) of
-        [] -> remove_pragma_comment_block(Rest);
+        [] ->
+            remove_pragma_comment_block(Rest);
 
-        CleanComments -> [{comment, Loc, CleanComments} | remove_pragma_comment_block(Rest)]
+        CleanComments ->
+            [{comment, Loc, CleanComments} | remove_pragma_comment_block(Rest)]
     end.
 
 remove_pragma_comment_block([]) ->
@@ -291,7 +318,9 @@ remove_pragma_comment_block([Head | Tail]) ->
     end.
 
 replace_pragma_node(Node0) ->
-    {PreComments0, _, PostComments0} = erlfmt_format:comments_with_pre_dot(Node0),
+    {PreComments0, _, PostComments0} = erlfmt_format:comments_with_pre_dot(
+        Node0
+    ),
     PreComments = replace_pragma_comment_blocks("%%%", PreComments0),
     PostComments = replace_pragma_comment_blocks("%%%", PostComments0),
     Node = erlfmt_scan:put_anno(pre_comments, PreComments, Node0),
@@ -303,7 +332,10 @@ replace_pragma_comment_blocks(_Prefix, []) ->
 replace_pragma_comment_blocks(Prefix, [{comment, Loc, Comments} | Rest]) ->
     CleanComments = replace_pragma_comment_block(Prefix, Comments),
     {Prefix0, _} = string:take(lists:last(CleanComments), "%"),
-    [{comment, Loc, CleanComments} | replace_pragma_comment_block(Prefix0, Rest)].
+    [
+        {comment, Loc, CleanComments}
+        | replace_pragma_comment_block(Prefix0, Rest)
+    ].
 
 replace_pragma_comment_block(_Prefix, []) ->
     [];
@@ -350,7 +382,9 @@ format_file_range(FileName, StartLocation, EndLocation, Options) ->
 
 format_string_range(Original, StartLocation, EndLocation, Options) ->
     Filename = proplists:get_value(filename, Options, "nofile"),
-    format_string_range(Filename, Original, StartLocation, EndLocation, Options).
+    format_string_range(
+        Filename, Original, StartLocation, EndLocation, Options
+    ).
 format_string_range(FileName, Original, StartLocation, EndLocation, Options) ->
     Pragma = proplists:get_value(pragma, Options, ignore),
     case read_nodes_string(FileName, Original, Pragma) of
@@ -365,7 +399,9 @@ format_string_range(FileName, Original, StartLocation, EndLocation, Options) ->
             ),
             case Result of
                 {ok, Formatted, Info} ->
-                    Whole = inject_range(Original, StartLine, EndLine, Formatted),
+                    Whole = inject_range(
+                        Original, StartLine, EndLine, Formatted
+                    ),
                     {ok, Whole, Info};
 
                 Other ->
@@ -396,8 +432,14 @@ inject_range(Original, StartLine, EndLine, Formatted) ->
     New = replace_slice(AsList, StartLine, Len, FormattedAsList),
     lists:join("\n", New).
 
-format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
-    case format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) of
+format_enclosing_range(
+    FileName, StartLocation, EndLocation, Options, Nodes, Warnings
+) ->
+    case
+        format_range(
+            FileName, StartLocation, EndLocation, Options, Nodes, Warnings
+        )
+    of
         {options, []} ->
             % Nothing to format, due to noformat pragma or range outside of file,
             % return empty change (no warning should be emitted if noformat).
@@ -428,11 +470,16 @@ format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
                 verify_nodes(FileName, NodesInRange, Result),
                 VerboseWarnings =
                     case proplists:get_bool(verbose, Options) of
-                        true -> check_line_lengths(FileName, PrintWidth, Result, StartLocation);
+                        true ->
+                            check_line_lengths(
+                                FileName, PrintWidth, Result, StartLocation
+                            );
 
-                        false -> []
+                        false ->
+                            []
                     end,
-                {ok, unicode:characters_to_binary(Result), Warnings ++ VerboseWarnings};
+                {ok, unicode:characters_to_binary(Result),
+                    Warnings ++ VerboseWarnings};
 
             {options, PossibleRanges} ->
                 {options, PossibleRanges}
@@ -444,7 +491,8 @@ format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
 
 %% API entry point
 -spec read_nodes(file:name_all()) ->
-    {ok, [erlfmt_parse:abstract_node()], [error_info()]} | {error, error_info()}.
+    {ok, [erlfmt_parse:abstract_node()], [error_info()]}
+    | {error, error_info()}.
 
 read_nodes(FileName) ->
     try
@@ -495,7 +543,8 @@ read_stdin(Acc) ->
 
 %% API entry point
 -spec read_nodes_string(file:name_all(), string()) ->
-    {ok, [erlfmt_parse:abstract_node()], [error_info()]} | {error, error_info()}.
+    {ok, [erlfmt_parse:abstract_node()], [error_info()]}
+    | {error, error_info()}.
 
 read_nodes_string(FileName, String) ->
     try
@@ -510,8 +559,12 @@ read_nodes_string(FileName, String, Pragma) ->
 read_nodes(State, FileName, Pragma) ->
     read_nodes(State, FileName, Pragma, [], [], []).
 
-read_nodes({ok, Tokens, Comments, Cont}, FileName, PragmaFlag, [], Warnings0, TextAcc) ->
-    {Node, Warnings, Ignore} = parse_node(Tokens, Comments, FileName, Cont, Warnings0, false),
+read_nodes(
+    {ok, Tokens, Comments, Cont}, FileName, PragmaFlag, [], Warnings0, TextAcc
+) ->
+    {Node, Warnings, Ignore} = parse_node(
+        Tokens, Comments, FileName, Cont, Warnings0, false
+    ),
     case {which_pragma_node(Node), Node} of
         {_, {shebang, _, _}} ->
             {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
@@ -531,7 +584,9 @@ read_nodes({ok, Tokens, Comments, Cont}, FileName, PragmaFlag, [], Warnings0, Te
             skip_nodes(Cont, FileName, TextAcc);
 
         _ ->
-            read_nodes_loop(erlfmt_scan:continue(Cont), FileName, [Node], Warnings, Ignore)
+            read_nodes_loop(
+                erlfmt_scan:continue(Cont), FileName, [Node], Warnings, Ignore
+            )
     end;
 
 read_nodes(
@@ -542,7 +597,9 @@ read_nodes(
     Warnings0,
     TextAcc
 ) ->
-    {Node, Warnings, Ignore} = parse_node(Tokens, Comments, FileName, Cont, Warnings0, false),
+    {Node, Warnings, Ignore} = parse_node(
+        Tokens, Comments, FileName, Cont, Warnings0, false
+    ),
     case which_pragma_node(Node) of
         nopragma when PragmaFlag =:= require; PragmaFlag =:= delete ->
             skip_nodes(Cont, FileName, TextAcc);
@@ -552,7 +609,11 @@ read_nodes(
 
         _ ->
             read_nodes_loop(
-                erlfmt_scan:continue(Cont), FileName, [Node, ShebangNode], Warnings, Ignore
+                erlfmt_scan:continue(Cont),
+                FileName,
+                [Node, ShebangNode],
+                Warnings,
+                Ignore
             )
     end;
 
@@ -569,32 +630,49 @@ skip_nodes(Cont, FileName, TextAcc) ->
             throw({error, {FileName, ErrLoc, Mod, Reason}})
     end.
 
-read_nodes_loop({ok, Tokens, Comments, Cont}, FileName, Acc, Warnings0, Ignore0) ->
-    {Node, Warnings, Ignore} = parse_node(Tokens, Comments, FileName, Cont, Warnings0, Ignore0),
-    read_nodes_loop(erlfmt_scan:continue(Cont), FileName, [Node | Acc], Warnings, Ignore);
+read_nodes_loop(
+    {ok, Tokens, Comments, Cont}, FileName, Acc, Warnings0, Ignore0
+) ->
+    {Node, Warnings, Ignore} = parse_node(
+        Tokens, Comments, FileName, Cont, Warnings0, Ignore0
+    ),
+    read_nodes_loop(
+        erlfmt_scan:continue(Cont), FileName, [Node | Acc], Warnings, Ignore
+    );
 
 read_nodes_loop({eof, _Loc}, _FileName, Acc, Warnings, _Ignore0) ->
     {ok, lists:reverse(Acc), lists:reverse(Warnings)};
 
-read_nodes_loop({error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _Warnings, _Ignore0) ->
+read_nodes_loop(
+    {error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _Warnings, _Ignore0
+) ->
     throw({error, {FileName, ErrLoc, Mod, Reason}}).
 
 parse_node([], _Comments, _FileName, Cont, Warnings, Ignore) ->
     {node_string(Cont), Warnings, Ignore};
 
-parse_node([{shebang, Meta, String}], Comments, _FileName, _Cont, Warnings, Ignore) ->
-    Node = {shebang, erlfmt_recomment:put_post_comments(Meta, Comments), String},
+parse_node(
+    [{shebang, Meta, String}], Comments, _FileName, _Cont, Warnings, Ignore
+) ->
+    Node =
+        {shebang, erlfmt_recomment:put_post_comments(Meta, Comments), String},
     {Node, Warnings, Ignore};
 
 parse_node([Token | _] = Tokens, Comments, FileName, Cont, Warnings, Ignore0) ->
-    {PreComments, _} = erlfmt_recomment:take_comments(erlfmt_scan:get_line(Token), Comments),
+    {PreComments, _} = erlfmt_recomment:take_comments(
+        erlfmt_scan:get_line(Token), Comments
+    ),
     Ignore = ignore_state_pre(PreComments, FileName, Ignore0),
     NextIgnore = ignore_state_post([], FileName, Ignore),
     case Ignore of
         false ->
             case parse(Tokens) of
                 {ok, Node} ->
-                    {erlfmt_recomment:recomment(Node, Comments), Warnings, NextIgnore};
+                    {
+                        erlfmt_recomment:recomment(Node, Comments),
+                        Warnings,
+                        NextIgnore
+                    };
 
                 {error, {ErrLoc, Mod, Reason}} ->
                     Warning = {FileName, ErrLoc, Mod, Reason},
@@ -635,7 +713,9 @@ ignore_state([{comment, Loc, Comments} | Rest], FileName, Acc) ->
 ignore_state([], _FileName, Acc) ->
     Acc.
 
--define(IS_IGNORE_REASON(S), (S =:= [] orelse hd(S) =:= 32 orelse hd(S) =:= $%)).
+-define(IS_IGNORE_REASON(S),
+    (S =:= [] orelse hd(S) =:= 32 orelse hd(S) =:= $%)
+).
 
 ignore_state([Line | Lines], FileName, Loc, Rest, Acc0) ->
     Acc =
@@ -645,38 +725,68 @@ ignore_state([Line | Lines], FileName, Loc, Rest, Acc0) ->
                 ignore;
 
             "erlfmt-ignore" ++ R when ?IS_IGNORE_REASON(R) ->
-                throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, ignore, Acc0}}});
+                throw(
+                    {error,
+                        {FileName, Loc, ?MODULE,
+                            {invalid_ignore, ignore, Acc0}}}
+                );
 
-            "erlfmt-ignore-begin" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= false ->
+            "erlfmt-ignore-begin" ++ R when
+                ?IS_IGNORE_REASON(R), Acc0 =:= false
+            ->
                 'begin';
 
             "erlfmt-ignore-begin" ++ R when ?IS_IGNORE_REASON(R) ->
-                throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'begin', Acc0}}});
+                throw(
+                    {error,
+                        {FileName, Loc, ?MODULE,
+                            {invalid_ignore, 'begin', Acc0}}}
+                );
 
-            "erlfmt-ignore-end" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= 'begin' ->
+            "erlfmt-ignore-end" ++ R when
+                ?IS_IGNORE_REASON(R), Acc0 =:= 'begin'
+            ->
                 false;
 
             "erlfmt-ignore-end" ++ R when ?IS_IGNORE_REASON(R) ->
-                throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'end', Acc0}}});
+                throw(
+                    {error,
+                        {FileName, Loc, ?MODULE, {invalid_ignore, 'end', Acc0}}}
+                );
 
             % New-style erlfmt:ignore
             "erlfmt:ignore" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= false ->
                 ignore;
 
             "erlfmt:ignore" ++ R when ?IS_IGNORE_REASON(R) ->
-                throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, ignore, Acc0}}});
+                throw(
+                    {error,
+                        {FileName, Loc, ?MODULE,
+                            {invalid_ignore, ignore, Acc0}}}
+                );
 
-            "erlfmt:ignore-begin" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= false ->
+            "erlfmt:ignore-begin" ++ R when
+                ?IS_IGNORE_REASON(R), Acc0 =:= false
+            ->
                 'begin';
 
             "erlfmt:ignore-begin" ++ R when ?IS_IGNORE_REASON(R) ->
-                throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'begin', Acc0}}});
+                throw(
+                    {error,
+                        {FileName, Loc, ?MODULE,
+                            {invalid_ignore, 'begin', Acc0}}}
+                );
 
-            "erlfmt:ignore-end" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= 'begin' ->
+            "erlfmt:ignore-end" ++ R when
+                ?IS_IGNORE_REASON(R), Acc0 =:= 'begin'
+            ->
                 false;
 
             "erlfmt:ignore-end" ++ R when ?IS_IGNORE_REASON(R) ->
-                throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'end', Acc0}}});
+                throw(
+                    {error,
+                        {FileName, Loc, ?MODULE, {invalid_ignore, 'end', Acc0}}}
+                );
 
             _ ->
                 Acc0
@@ -691,7 +801,8 @@ node_string(Cont) ->
     {raw_string, Anno, String}.
 
 
--spec format_nodes([erlfmt_parse:abstract_node()], pos_integer()) -> [unicode:chardata()].
+-spec format_nodes([erlfmt_parse:abstract_node()], pos_integer()) ->
+    [unicode:chardata()].
 
 format_nodes([], _PrintWidth) ->
     [];
@@ -733,7 +844,8 @@ maybe_empty_line(Node, Next) ->
     end.
 
 
--spec format_node(erlfmt_parse:abstract_node(), pos_integer()) -> unicode:chardata().
+-spec format_node(erlfmt_parse:abstract_node(), pos_integer()) ->
+    unicode:chardata().
 
 format_node({raw_string, _Anno, String}, _PrintWidth) ->
     String;
@@ -799,7 +911,8 @@ equivalent({concat, _, Left} = L, {concat, _, Right} = R) ->
     concat_equivalent(Left, Right) orelse throw({not_equivalent, L, R});
 
 equivalent({string, _, String} = L, {concat, _, Values} = R) ->
-    string_concat_equivalent(String, Values) orelse throw({not_equivalent, L, R});
+    string_concat_equivalent(String, Values) orelse
+        throw({not_equivalent, L, R});
 
 equivalent({op, _, Op1, _, _} = L, {op, _, Op2, _, _} = R) when Op1 =/= Op2 ->
     throw({not_equivalent, L, R});
@@ -815,7 +928,8 @@ equivalent({Type, _, L1, L2, L3}, {Type, _, R1, R2, R3}) ->
 
 equivalent({Type, _, L1, L2, L3, L4}, {Type, _, R1, R2, R3, R4}) ->
     equivalent(L1, R1) andalso
-        equivalent(L2, R2) andalso equivalent(L3, R3) andalso equivalent(L4, R4);
+        equivalent(L2, R2) andalso equivalent(L3, R3) andalso
+        equivalent(L4, R4);
 
 equivalent(Ls, Rs) when is_list(Ls), is_list(Rs) ->
     equivalent_list(Ls, Rs);
@@ -827,7 +941,10 @@ string_concat_equivalent(String, Values) ->
     string:equal(String, [Value || {string, _, Value} <- Values]).
 
 concat_equivalent(ValuesL, ValuesR) ->
-    string:equal([Value || {string, _, Value} <- ValuesL], [Value || {string, _, Value} <- ValuesR]).
+    string:equal([Value || {string, _, Value} <- ValuesL], [
+        Value
+     || {string, _, Value} <- ValuesR
+    ]).
 
 equivalent_list([L | Ls], [R | Rs]) ->
     equivalent(L, R) andalso equivalent_list(Ls, Rs);
@@ -838,21 +955,28 @@ equivalent_list([], []) ->
 equivalent_list(Ls, Rs) ->
     throw({not_equivalent, Ls, Rs}).
 
-try_location(Node, _) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node);
+try_location(Node, _) when is_tuple(Node) ->
+    erlfmt_scan:get_anno(location, Node);
 
-try_location([Node | _], _) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node);
+try_location([Node | _], _) when is_tuple(Node) ->
+    erlfmt_scan:get_anno(location, Node);
 
-try_location(_, Node) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node);
+try_location(_, Node) when is_tuple(Node) ->
+    erlfmt_scan:get_anno(location, Node);
 
-try_location(_, [Node | _]) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node);
+try_location(_, [Node | _]) when is_tuple(Node) ->
+    erlfmt_scan:get_anno(location, Node);
 
-try_location(_, _) -> 0.
+try_location(_, _) ->
+    0.
 
 
 -spec format_error_info(error_info()) -> unicode:chardata().
 
 format_error_info({FileName, Anno, Mod, Reason}) ->
-    io_lib:format("~ts~s: ~ts", [FileName, format_loc(Anno), Mod:format_error(Reason)]).
+    io_lib:format("~ts~s: ~ts", [
+        FileName, format_loc(Anno), Mod:format_error(Reason)
+    ]).
 
 format_loc(0) -> "";
 
@@ -884,7 +1008,9 @@ format_error({invalid_ignore, 'end', false}) ->
     "invalid erlfmt:ignore-end while outside of erlfmt:ignore-begin section";
 
 format_error({invalid_ignore, Given, Previous}) ->
-    io_lib:format("invalid ignore specification ~ts while in ~ts state", [Given, Previous]).
+    io_lib:format("invalid ignore specification ~ts while in ~ts state", [
+        Given, Previous
+    ]).
 
 verify_ranges(Nodes, StartLocation, EndLocation) ->
     ApplicableNodes = nodes_in_range(Nodes, StartLocation, EndLocation),
@@ -907,7 +1033,9 @@ possible_ranges(Nodes, StartLocation, EndLocation) ->
 
         MultipleNodes ->
             combine(
-                get_possible_locations(MultipleNodes, StartLocation, fun get_location/1),
+                get_possible_locations(
+                    MultipleNodes, StartLocation, fun get_location/1
+                ),
                 get_possible_locations(
                     lists:reverse(MultipleNodes),
                     EndLocation,
@@ -917,7 +1045,10 @@ possible_ranges(Nodes, StartLocation, EndLocation) ->
     end.
 
 nodes_in_range(Nodes, StartLocation, EndLocation) ->
-    [Node || Node <- Nodes, node_intersects_range(Node, StartLocation, EndLocation)].
+    [
+        Node
+     || Node <- Nodes, node_intersects_range(Node, StartLocation, EndLocation)
+    ].
 
 node_intersects_range(Node, StartLocation, EndLocation) ->
     {Start, End} = get_location_range(Node),
