@@ -85,16 +85,24 @@ reserved_word('else') -> true;
 
 reserved_word(Atom) -> erl_scan:reserved_word(Atom).
 
+
 -spec io_node(file:io_device()) -> node_ret().
-io_node(IO) -> node(fun io_scan_erl_node/2, IO).
+
+io_node(IO) ->
+    node(fun io_scan_erl_node/2, IO).
+
 
 -spec string_node(string()) -> node_ret().
-string_node(String) -> node(fun erl_scan_tokens/2, String).
+
+string_node(String) ->
+    node(fun erl_scan_tokens/2, String).
 
 node(Scan, Inner0) ->
     continue(Scan, Inner0, ?START_LOCATION, []).
 
+
 -spec continue(state()) -> node_ret().
+
 continue(#state{scan = Scan, inner = Inner, loc = Loc, buffer = Buffer}) ->
     continue(Scan, Inner, Loc, Buffer).
 
@@ -159,7 +167,9 @@ continue(Scan, Inner0, Loc0, Buffer0) ->
             Other
     end.
 
+
 -spec read_rest(state()) -> {ok, string()} | {error, {erl_anno:location(), module(), term()}}.
+
 read_rest(#state{inner = undefined}) ->
     %% reached EOF, no further nodes
     {ok, ""};
@@ -205,13 +215,17 @@ erl_scan_tokens(String, Loc) ->
 eof(undefined, Loc) ->
     {{eof, Loc}, undefined}.
 
+
 -spec last_node_string(state()) -> {unicode:chardata(), anno()}.
+
 last_node_string(#state{original = [First | _] = Tokens}) ->
     String = stringify_tokens(Tokens),
     Location = erl_scan:location(First),
     {String, token_anno([{text, String}, {location, Location}])}.
 
+
 -spec last_node_string_trimmed(state()) -> {unicode:chardata(), anno()}.
+
 last_node_string_trimmed(#state{original = [First | _] = Tokens}) ->
     String0 = stringify_tokens(Tokens),
     String = string:trim(String0, both, "\n"),
@@ -253,11 +267,15 @@ drop_initial_white_space([{white_space, _, _} | Rest]) ->
 drop_initial_white_space(Rest) ->
     Rest.
 
+
 -spec stringify_tokens([erl_scan:token()]) -> string().
+
 stringify_tokens(Tokens) ->
     lists:flatmap(fun token_text/1, Tokens).
 
+
 -spec token_text(erl_scan:token()) -> string().
+
 token_text(Token) ->
     case erl_scan:text(Token) of
         %% sigil_suffix might miss the text field
@@ -268,8 +286,10 @@ token_text(Token) ->
             Text
     end.
 
+
 -spec split_tokens([erl_scan:token()], [erl_scan:token()]) ->
     {[token()], [erl_scan:token()], [comment()], [token()]}.
+
 split_tokens(Tokens, ExtraTokens0) ->
     case split_tokens(Tokens, [], []) of
         {[], Comments} ->
@@ -397,9 +417,11 @@ delete_annos(Keys, Anno) when is_map(Anno) ->
 delete_annos(Keys, Node) when is_tuple(Node) ->
     setelement(2, Node, maps:without(Keys, element(2, Node))).
 
-get_line(Anno) -> element(1, get_anno(location, Anno)).
+get_line(Anno) ->
+    element(1, get_anno(location, Anno)).
 
-get_end_line(Anno) -> element(1, get_anno(end_location, Anno)).
+get_end_line(Anno) ->
+    element(1, get_anno(end_location, Anno)).
 
 get_inner_line(Anno) ->
     element(1, get_anno(inner_location, Anno, get_anno(location, Anno))).

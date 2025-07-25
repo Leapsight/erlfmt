@@ -167,15 +167,21 @@
 % empty is not printed at all, but it is essential to implement optional output: if ... then "output" else empty;
 % empty is mapped to the empty string by the pretty printer.
 -spec empty() -> doc().
-empty() -> doc_nil.
+
+empty() ->
+    doc_nil.
+
 
 % string documents are measured in terms of graphemes towards the document size.
 -spec string(unicode:chardata()) -> doc().
+
 string(String) ->
     #doc_string{string = String, length = string:length(String)}.
 
+
 % Concatenates two document entities returning a new document.
 -spec concat(doc(), doc()) -> doc().
+
 concat(Left, Right) when is_binary(Left), is_binary(Right) ->
     #doc_string{string = [Left | Right], length = byte_size(Left) + byte_size(Right)};
 
@@ -194,22 +200,30 @@ concat(#doc_string{} = Left, #doc_string{} = Right) ->
 concat(Left, Right) when ?is_doc(Left), ?is_doc(Right) ->
     #doc_cons{left = Left, right = Right}.
 
+
 % Concatenates a list of documents returning a new document.
 -spec concat([doc()]) -> doc().
+
 concat(Docs) when is_list(Docs) ->
     fold_doc(fun concat/2, Docs).
 
+
 % Concatenates three document entities returning a new document.
 -spec concat(doc(), doc(), doc()) -> doc().
+
 concat(A, B, C) when ?is_doc(A), ?is_doc(B), ?is_doc(C) ->
     concat(A, concat(B, C)).
 
+
 % Nests the given document at the given `level`.
 -spec nest(doc(), non_neg_integer()) -> doc().
+
 nest(Doc, Level) ->
     nest(Doc, Level, always).
 
+
 -spec nest(doc(), non_neg_integer(), always | break) -> doc().
+
 nest(Doc, 0, _Mode) when ?is_doc(Doc) ->
     Doc;
 
@@ -219,14 +233,19 @@ nest(Doc, Indent, always) when ?is_doc(Doc), is_integer(Indent) andalso Indent >
 nest(Doc, Indent, break) when ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0 ->
     #doc_nest{doc = Doc, indent = Indent, always_or_break = break}.
 
+
 % This break can be rendered as a linebreak or as the given `string`, depending on the `mode` or line limit of the chosen layout.
 -spec break() -> doc().
+
 break() ->
     break(<<" ">>).
 
+
 -spec break(binary()) -> doc().
+
 break(String) when is_binary(String) ->
     #doc_break{break = String, flex_or_strict = strict}.
+
 
 %   Considers the next break as fit.
 
@@ -268,17 +287,23 @@ break(String) when is_binary(String) ->
 %       })
 
 -spec next_break_fits(doc()) -> doc().
+
 next_break_fits(Doc) ->
     next_break_fits(Doc, enabled).
 
+
 -spec next_break_fits(doc(), enabled | disabled) -> doc().
+
 next_break_fits(Doc, Mode) when ?is_doc(Doc), Mode == enabled orelse Mode == disabled ->
     #doc_fits{group = Doc, enabled_or_disabled = Mode}.
 
+
 % Forces the parent group and its parent groups to break.
 -spec force_breaks() -> doc().
+
 force_breaks() ->
     doc_force_breaks.
+
 
 %   Returns a flex break document based on the given `string`.
 
@@ -305,22 +330,31 @@ force_breaks() ->
 %   since each break needs to be re-evaluated.
 
 -spec flex_break() -> doc().
-flex_break() -> flex_break(<<" ">>).
+
+flex_break() ->
+    flex_break(<<" ">>).
+
 
 -spec flex_break(binary()) -> doc().
+
 flex_break(String) when is_binary(String) ->
     #doc_break{break = String, flex_or_strict = flex}.
+
 
 %   Breaks two documents (`doc1` and `doc2`) inserting a
 %   `flex_break/1` given by `break_string` between them.
 
 -spec flex_break(doc(), doc()) -> doc().
+
 flex_break(Doc1, Doc2) ->
     flex_break(Doc1, <<" ">>, Doc2).
 
+
 -spec flex_break(doc(), binary(), doc()) -> doc().
+
 flex_break(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
     concat(Doc1, flex_break(BreakString), Doc2).
+
 
 %   Breaks two documents (`doc1` and `doc2`) inserting the given
 %   break `break_string` between them.
@@ -338,12 +372,16 @@ flex_break(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
 %       ["hello", "\t", "world"]
 
 -spec break(doc(), doc()) -> doc().
+
 break(Doc1, Doc2) ->
     break(Doc1, <<" ">>, Doc2).
 
+
 -spec break(doc(), binary(), doc()) -> doc().
+
 break(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
     concat(Doc1, break(BreakString), Doc2).
+
 
 %   Returns a group containing the specified document `doc`.
 
@@ -379,8 +417,10 @@ break(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
 %       ["Hello,", "\n", "A", "\n", "B"]
 
 -spec group(doc()) -> doc().
+
 group(Doc) ->
     #doc_group{group = Doc}.
+
 
 %   Inserts a mandatory single space between two documents.
 
@@ -391,20 +431,31 @@ group(Doc) ->
 %       ["Hughes", " ", "Wadler"]
 
 -spec space(doc(), doc()) -> doc().
+
 space(Doc1, Doc2) ->
     concat(Doc1, <<" ">>, Doc2).
+
 
 % A mandatory linebreak, but in the paper doc_line was described as optional? (is this mandatory or optional in this implementation)
 % A group with linebreaks will fit if all lines in the group fit.
 -spec line() -> doc().
-line() -> #doc_line{count = 1}.
+
+line() ->
+    #doc_line{count = 1}.
+
 
 -spec line(pos_integer()) -> doc().
-line(Count) when is_integer(Count), Count > 0 -> #doc_line{count = Count}.
+
+line(Count) when is_integer(Count), Count > 0 ->
+    #doc_line{count = Count}.
+
 
 % Inserts a mandatory linebreak between two documents.
 -spec line(doc(), doc()) -> doc().
-line(Doc1, Doc2) -> concat(Doc1, line(), Doc2).
+
+line(Doc1, Doc2) ->
+    concat(Doc1, line(), Doc2).
+
 
 %   Folds a list of documents into a document using the given folder function.
 %   The list of documents is folded "from the right"; in that, this function is
@@ -418,6 +469,7 @@ line(Doc1, Doc2) -> concat(Doc1, line(), Doc2).
 %   ```
 %   ["A", "!", "B", "!", "C"]
 -spec fold_doc(fun((doc(), doc()) -> doc()), [doc()]) -> doc().
+
 fold_doc(_Fun, []) ->
     empty();
 
@@ -427,12 +479,14 @@ fold_doc(_Fun, [Doc]) ->
 fold_doc(Fun, [Doc | Docs]) ->
     Fun(Doc, fold_doc(Fun, Docs)).
 
+
 % Formats a given document for a given width.
 % Takes the maximum width and a document to print as its arguments
 % and returns an string representation of the best layout for the
 % document to fit in the given width.
 % The document starts flat (without breaks) until a group is found.
 -spec format(doc(), non_neg_integer() | infinity) -> unicode:chardata().
+
 format(Doc, Width) when ?is_doc(Doc) andalso (Width == infinity orelse Width >= 0) ->
     format(Width, 0, [{0, flat, Doc}]).
 
@@ -455,6 +509,7 @@ when
         {integer(), mode(), doc()},
         {tail, boolean(), Entries} | []
     ).
+
 % We need at least a break to consider the document does not fit since a
 % large document without breaks has no option but fitting its current line.
 %
@@ -541,7 +596,9 @@ fits(Width, Column, HasBreaks, [{Indent, M, #doc_cons{left = X, right = Y}} | T]
 fits(Width, Column, HasBreaks, [{Indent, M, #doc_group{group = X}} | T]) ->
     fits(Width, Column, HasBreaks, [{Indent, M, X} | {tail, HasBreaks, T}]).
 
+
 -spec format(integer() | infinity, integer(), [{integer(), mode(), doc()}]) -> [binary()].
+
 format(_, _, []) ->
     [];
 

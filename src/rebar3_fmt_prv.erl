@@ -21,6 +21,7 @@
 -define(DEPS, []).
 
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
+
 init(State) ->
     Provider =
         providers:create([
@@ -35,7 +36,9 @@ init(State) ->
         ]),
     {ok, rebar_state:add_provider(State, Provider)}.
 
+
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()}.
+
 do(State) ->
     ConfigOpts = rebar_state:get(State, erlfmt, []),
     case rebar_state:command_parsed_args(State) of

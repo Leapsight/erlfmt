@@ -48,6 +48,7 @@
 
 %% escript entry point
 -spec main([string()]) -> no_return().
+
 main(Argv) ->
     application:ensure_all_started(erlfmt),
     %% operate stdio in purely unicode mode
@@ -66,14 +67,18 @@ main(Argv) ->
             erlang:halt(2)
     end.
 
+
 %% rebar3 plugin entry point
 -spec init(term()) -> {ok, term()}.
+
 init(State) ->
     rebar3_fmt_prv:init(State).
+
 
 %% API entry point
 -spec format_file(file:name_all() | stdin, config()) ->
     {ok, [unicode:chardata()], [error_info()]} | {skip, string()} | {error, error_info()}.
+
 format_file(FileName, Options) ->
     Range = proplists:get_value(range, Options),
     case Range of
@@ -88,8 +93,10 @@ format_file(FileName, Options) ->
             format_file_range(FileName, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2)
     end.
 
+
 -spec format_file_full(file:name_all() | stdin, config()) ->
     {ok, [unicode:chardata()], [error_info()]} | {skip, string()} | {error, error_info()}.
+
 format_file_full(FileName, Options) ->
     PrintWidth = proplists:get_value(print_width, Options, ?DEFAULT_WIDTH),
     Pragma = proplists:get_value(pragma, Options, ignore),
@@ -121,10 +128,12 @@ format_file_full(FileName, Options) ->
         {error, Error} -> {error, Error}
     end.
 
+
 -spec format_string(string(), [
     config_option() | {filename, string()} | {range, erlfmt_scan:location()}
 ]) ->
     {ok, string(), [error_info()]} | {skip, string()} | {error, error_info()}.
+
 format_string(String, Options) ->
     Range = proplists:get_value(range, Options),
     case Range of
@@ -139,8 +148,10 @@ format_string(String, Options) ->
             format_string_range(String, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2)
     end.
 
+
 -spec format_string_full(string(), [config_option() | {filename, string()}]) ->
     {ok, string(), [error_info()]} | {skip, string()} | {error, error_info()}.
+
 format_string_full(String, Options) ->
     Filename = proplists:get_value(filename, Options, "nofile"),
     PrintWidth = proplists:get_value(print_width, Options, ?DEFAULT_WIDTH),
@@ -307,6 +318,7 @@ replace_pragma_comment_block(_Prefix, [("%" ++ _) = Head | Tail]) ->
 replace_pragma_comment_block(Prefix, [Head | Tail]) ->
     [Head | replace_pragma_comment_block(Prefix, Tail)].
 
+
 % Format the minimum number of top-level forms
 % that cover the passed range.
 % Rationale: top-level forms is the smallest
@@ -320,9 +332,11 @@ replace_pragma_comment_block(Prefix, [Head | Tail]) ->
     {ok, string(), [error_info()]}
     | {skip, string()}
     | {error, error_info()}.
+
 format_file_range(FileName, StartLocation, EndLocation, Options) ->
     String = read_file_or_stdin(FileName),
     format_string_range(FileName, String, StartLocation, EndLocation, Options).
+
 
 -spec format_string_range(
     string(),
@@ -333,6 +347,7 @@ format_file_range(FileName, StartLocation, EndLocation, Options) ->
     {ok, string(), [error_info()]}
     | {skip, string()}
     | {error, error_info()}.
+
 format_string_range(Original, StartLocation, EndLocation, Options) ->
     Filename = proplists:get_value(filename, Options, "nofile"),
     format_string_range(Filename, Original, StartLocation, EndLocation, Options).
@@ -426,9 +441,11 @@ format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
         {error, Error} -> {error, Error}
     end.
 
+
 %% API entry point
 -spec read_nodes(file:name_all()) ->
     {ok, [erlfmt_parse:abstract_node()], [error_info()]} | {error, error_info()}.
+
 read_nodes(FileName) ->
     try
         file_read_nodes(FileName, ignore)
@@ -475,9 +492,11 @@ read_stdin(Acc) ->
             read_stdin([unicode:characters_to_list(Line) | Acc])
     end.
 
+
 %% API entry point
 -spec read_nodes_string(file:name_all(), string()) ->
     {ok, [erlfmt_parse:abstract_node()], [error_info()]} | {error, error_info()}.
+
 read_nodes_string(FileName, String) ->
     try
         read_nodes_string(FileName, String, ignore)
@@ -671,7 +690,9 @@ node_string(Cont) ->
     {String, Anno} = erlfmt_scan:last_node_string_trimmed(Cont),
     {raw_string, Anno, String}.
 
+
 -spec format_nodes([erlfmt_parse:abstract_node()], pos_integer()) -> [unicode:chardata()].
+
 format_nodes([], _PrintWidth) ->
     [];
 
@@ -711,7 +732,9 @@ maybe_empty_line(Node, Next) ->
             end
     end.
 
+
 -spec format_node(erlfmt_parse:abstract_node(), pos_integer()) -> unicode:chardata().
+
 format_node({raw_string, _Anno, String}, _PrintWidth) ->
     String;
 
@@ -736,9 +759,14 @@ should_add_extra_newlines(Node, Next) ->
 
 %% Get the type of a node for spacing decisions
 node_type({attribute, _, {atom, _, spec}, _}) -> spec;
-node_type({attribute, _, {atom, _, callback}, _}) -> spec;  % Treat callback same as spec
+
+% Treat callback same as spec
+node_type({attribute, _, {atom, _, callback}, _}) -> spec;
+
 node_type({function, _, _}) -> function;
+
 node_type({raw_string, _, _}) -> raw_string;
+
 node_type(_) -> other.
 
 verify_nodes(FileName, Nodes, Formatted) ->
@@ -820,7 +848,9 @@ try_location(_, [Node | _]) when is_tuple(Node) -> erlfmt_scan:get_anno(location
 
 try_location(_, _) -> 0.
 
+
 -spec format_error_info(error_info()) -> unicode:chardata().
+
 format_error_info({FileName, Anno, Mod, Reason}) ->
     io_lib:format("~ts~s: ~ts", [FileName, format_loc(Anno), Mod:format_error(Reason)]).
 
@@ -930,9 +960,11 @@ check_line_lengths(FileName, Width, String, {FirstLineNo, _}) ->
         string:length(Line) > Width
     ].
 
+
 % Replace the sublist(Target, Start, Len) by Injected.
 % E.g. if Injected is empty it will just remove the sublist.
 -spec replace_slice(list(), pos_integer(), non_neg_integer(), list()) -> list().
+
 replace_slice(Target, Start, Len, Injected) ->
     Res =
         lists:sublist(Target, Start - 1) ++

@@ -27,6 +27,7 @@
 
 -spec recomment(erlfmt_parse:abstract_node(), [erlfmt_scan:comment()]) ->
     erlfmt_parse:abstract_node().
+
 recomment(Node, Comments) ->
     insert_node(Node, Comments).
 
@@ -82,7 +83,8 @@ insert_expr(Node0, Comments) ->
     Node = put_pre_comments(Node1, PreComments),
     {Node, RestComments}.
 
-insert_expr_list(Exprs, Comments) -> insert_expr_list(Exprs, Comments, []).
+insert_expr_list(Exprs, Comments) ->
+    insert_expr_list(Exprs, Comments, []).
 
 insert_expr_list(Exprs, [], Acc) ->
     {lists:reverse(Acc, Exprs), []};

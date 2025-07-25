@@ -65,11 +65,15 @@ opts() ->
             "are specified as the default."}
     ].
 
+
 -spec do(string(), list()) -> ok.
+
 do(Name, Opts) ->
     do(Name, Opts, []).
 
+
 -spec do(string(), list(), list()) -> ok.
+
 do(Name, PreferOpts, DefaultOpts) ->
     PreferParsed = parse_opts(PreferOpts),
     DefaultParsed = parse_opts(DefaultOpts),
@@ -100,7 +104,9 @@ do(Name, PreferOpts, DefaultOpts) ->
         end,
     with_parsed(Name, Parsed).
 
+
 -spec with_parsed(string(), parsed()) -> ok.
+
 with_parsed(Name, Config) ->
     try
         unprotected_with_config(Name, Config)
@@ -110,7 +116,9 @@ with_parsed(Name, Config) ->
             erlang:halt(127)
     end.
 
+
 -spec set_difference([file:name_all()], [file:name_all()]) -> [file:name_all()].
+
 set_difference(Files, Excludes) ->
     {ok, Cwd} = file:get_cwd(),
     AbsoluteFiles = maps:from_list([{resolve_path(Cwd, F), F} || F <- Files]),
@@ -140,6 +148,7 @@ resolve_path2([], Components) -> lists:reverse(Components).
 -dialyzer({nowarn_function, [unprotected_with_config/2]}).
 
 -spec unprotected_with_config(string(), parsed()) -> ok.
+
 unprotected_with_config(Name, ParsedConfig) ->
     case ParsedConfig of
         {format, Files0, Excludes, Config} ->
@@ -342,7 +351,9 @@ read_stdin(Data) ->
         {error, Reason} -> {error, Reason}
     end.
 
+
 -spec parse_opts(list()) -> parsed().
+
 parse_opts(Args) ->
     parse_opts(Args, [], [], #config{}).
 
@@ -457,7 +468,9 @@ parse_opts([], Files, Exclude, Config) ->
 parse_opts([Unknown | _], _Files, _Exclude, _Config) ->
     {error, io_lib:format("unknown option: ~p", [Unknown])}.
 
+
 -spec resolve_parsed(parsed(), parsed()) -> parsed().
+
 resolve_parsed(PreferParsed, DefaultParsed) ->
     case {PreferParsed, DefaultParsed} of
         {{error, _} = Error, _} ->

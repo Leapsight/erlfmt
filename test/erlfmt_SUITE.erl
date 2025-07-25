@@ -229,7 +229,8 @@ groups() ->
         ]}
     ].
 
-group(_) -> [].
+group(_) ->
+    [].
 
 all() ->
     [
@@ -1069,61 +1070,83 @@ parse_forms(String) ->
             )
     end.
 
-snapshot_simple_comments(Config) -> snapshot_same("simple_comments.erl", Config).
+snapshot_simple_comments(Config) ->
+    snapshot_same("simple_comments.erl", Config).
 
-snapshot_big_binary(Config) -> snapshot_same("big_binary.erl", Config).
+snapshot_big_binary(Config) ->
+    snapshot_same("big_binary.erl", Config).
 
-snapshot_attributes(Config) -> snapshot_same("attributes.erl", Config).
+snapshot_attributes(Config) ->
+    snapshot_same("attributes.erl", Config).
 
-snapshot_escript(Config) -> snapshot_same("escript.erl", Config).
-
-%% On the third line (or second line depending on the presence of the Emacs directive),
-%% arguments can be specified to the emulator
-%% https://erlang.org/doc/man/escript.html
-snapshot_emulator_args(Config) -> snapshot_same("emulator_args.escript", Config).
-
-%% On the third line (or second line depending on the presence of the Emacs directive),
-%% arguments can be specified to the emulator
-%% https://erlang.org/doc/man/escript.html
-snapshot_emulator_args2(Config) -> snapshot_same("emulator_args2.escript", Config).
+snapshot_escript(Config) ->
+    snapshot_same("escript.erl", Config).
 
 %% On the third line (or second line depending on the presence of the Emacs directive),
 %% arguments can be specified to the emulator
 %% https://erlang.org/doc/man/escript.html
-snapshot_emulator_args_module(Config) -> snapshot_same("emulator_args_module.escript", Config).
+snapshot_emulator_args(Config) ->
+    snapshot_same("emulator_args.escript", Config).
 
-snapshot_pragma(Config) -> snapshot_same("pragma.erl", [{pragma, require} | Config]).
+%% On the third line (or second line depending on the presence of the Emacs directive),
+%% arguments can be specified to the emulator
+%% https://erlang.org/doc/man/escript.html
+snapshot_emulator_args2(Config) ->
+    snapshot_same("emulator_args2.escript", Config).
 
-snapshot_no_pragma(Config) -> snapshot_same("no_pragma.erl", [{pragma, require} | Config]).
+%% On the third line (or second line depending on the presence of the Emacs directive),
+%% arguments can be specified to the emulator
+%% https://erlang.org/doc/man/escript.html
+snapshot_emulator_args_module(Config) ->
+    snapshot_same("emulator_args_module.escript", Config).
 
-snapshot_script(Config) -> snapshot_same("rebar.config.script", Config).
+snapshot_pragma(Config) ->
+    snapshot_same("pragma.erl", [{pragma, require} | Config]).
 
-snapshot_comments(Config) -> snapshot_formatted("comments.erl", Config).
+snapshot_no_pragma(Config) ->
+    snapshot_same("no_pragma.erl", [{pragma, require} | Config]).
 
-snapshot_broken(Config) -> snapshot_formatted("broken.erl", Config).
+snapshot_script(Config) ->
+    snapshot_same("rebar.config.script", Config).
 
-snapshot_overlong(Config) -> snapshot_formatted("overlong.erl", Config).
+snapshot_comments(Config) ->
+    snapshot_formatted("comments.erl", Config).
 
-snapshot_otp_examples(Config) -> snapshot_formatted("otp_examples.erl", Config).
+snapshot_broken(Config) ->
+    snapshot_formatted("broken.erl", Config).
 
-snapshot_ignore_format(Config) -> snapshot_formatted("ignore_format.erl", Config).
+snapshot_overlong(Config) ->
+    snapshot_formatted("overlong.erl", Config).
 
-snapshot_ignore_format_many(Config) -> snapshot_formatted("ignore_format_many.erl", Config).
+snapshot_otp_examples(Config) ->
+    snapshot_formatted("otp_examples.erl", Config).
 
-snapshot_ignore_format_old(Config) -> snapshot_formatted("ignore_format_old.erl", Config).
+snapshot_ignore_format(Config) ->
+    snapshot_formatted("ignore_format.erl", Config).
 
-snapshot_ignore_format_many_old(Config) -> snapshot_formatted("ignore_format_many_old.erl", Config).
+snapshot_ignore_format_many(Config) ->
+    snapshot_formatted("ignore_format_many.erl", Config).
 
-snapshot_empty(Config) -> snapshot_same("empty.erl", Config).
+snapshot_ignore_format_old(Config) ->
+    snapshot_formatted("ignore_format_old.erl", Config).
+
+snapshot_ignore_format_many_old(Config) ->
+    snapshot_formatted("ignore_format_many_old.erl", Config).
+
+snapshot_empty(Config) ->
+    snapshot_same("empty.erl", Config).
 
 snapshot_insert_pragma_with(Config) when is_list(Config) ->
     snapshot_same("pragma.erl", [{pragma, insert} | Config]).
 
-snapshot_tripple_string(Config) -> snapshot_formatted("tripple_string.erl", Config).
+snapshot_tripple_string(Config) ->
+    snapshot_formatted("tripple_string.erl", Config).
 
-snapshot_tripple_crash(Config) -> snapshot_same("tripple_crash.erl", Config).
+snapshot_tripple_crash(Config) ->
+    snapshot_same("tripple_crash.erl", Config).
 
-snapshot_sigil_crash(Config) -> snapshot_same("sigil_crash.erl", Config).
+snapshot_sigil_crash(Config) ->
+    snapshot_same("sigil_crash.erl", Config).
 
 snapshot_same(Module, Config) ->
     Pragma = proplists:get_value(pragma, Config, ignore),

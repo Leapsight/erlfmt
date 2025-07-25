@@ -48,6 +48,7 @@
 -define(INDENT, 4).
 
 -spec to_algebra(erlfmt_parse:any_node()) -> erlfmt_algebra:doc().
+
 to_algebra({shebang, Meta, String}) ->
     Doc = string(String),
     combine_comments(Meta, Doc);
@@ -701,10 +702,12 @@ surround_container(#break{inner = ForceInner, outer = ForceOuter}, Left, Doc, Ri
     InnerDoc = group(concat(maybe_force_breaks(ForceInner), Doc)),
     surround(Left, <<"">>, concat(maybe_force_breaks(ForceOuter), InnerDoc), <<"">>, Right).
 
+
 %% last_fits_fun returns a fun similar to next_break_fits/2
 %% that takes into account the desired fits behaviour.
 -spec last_fits_fun(last_normal | last_fits, [erlfmt_parse:any_node()]) ->
     fun((erlfmt_algebra:doc(), disabled | enabled) -> erlfmt_algebra:doc()).
+
 last_fits_fun(last_fits, Values) when Values =/= [] ->
     case is_next_break_fits(lists:last(Values)) of
         true -> fun erlfmt_algebra:next_break_fits/2;
@@ -728,7 +731,9 @@ has_trailing_comments(Values) ->
             PostComments =/= []
     end.
 
+
 -spec has_opening_line_break(erlfmt_scan:anno(), [erlfmt_parse:any_node()]) -> boolean().
+
 has_opening_line_break(_Meta, []) ->
     false;
 
@@ -744,7 +749,9 @@ has_any_break_between([{cons, _, Head, Tail}]) ->
 has_any_break_between(_) ->
     false.
 
+
 -spec break_fun(break_behaviour()) -> erlfmt_algebra:append_fun().
+
 break_fun(flex_break) -> fun erlfmt_algebra:flex_break/2;
 
 break_fun(_) -> fun erlfmt_algebra:break/2.
@@ -763,9 +770,11 @@ map_inner_values(LastFitsFun, [Value]) ->
 map_inner_values(Last, [Value | Values]) ->
     [{Value, expr_to_algebra(Value)} | map_inner_values(Last, Values)].
 
+
 %% join_inner_values combines pairs of values and their document representation into one document.
 %% It preserves empty lines and adds commas between documents.
 -spec join_inner_values(erlfmt_algebra:append_fun(), [value_doc_pair()]) -> erlfmt_algebra:doc().
+
 join_inner_values(_BreakFun, [{_, ValueD}]) ->
     ValueD;
 
@@ -928,6 +937,7 @@ function_clauses_to_algebra([SingleClause]) ->
     %% Single clause functions always get a newline after ->
     ClauseD = clause_expr_to_algebra_with_break(SingleClause, true),
     group(concat(force_breaks(), ClauseD));
+
 function_clauses_to_algebra(Clauses) ->
     %% Multi-clause functions: keep compact unless any has a break
     AnyBreak = lists:any(fun clause_has_break/1, Clauses),
@@ -947,7 +957,9 @@ fold_function_clauses_to_algebra([Clause], ForceBreak) ->
 
 fold_function_clauses_to_algebra([Clause | Clauses], ForceBreak) ->
     ClauseD = clause_expr_to_algebra_with_break(Clause, ForceBreak),
-    concat([concat(ClauseD, <<";">>), line(2), fold_function_clauses_to_algebra(Clauses, ForceBreak)]).
+    concat([
+        concat(ClauseD, <<";">>), line(2), fold_function_clauses_to_algebra(Clauses, ForceBreak)
+    ]).
 
 %% Clause formatting with optional forced break after ->
 clause_expr_to_algebra_with_break({macro_call, Meta, _, _} = Expr, _ForceBreak) ->
@@ -1035,6 +1047,7 @@ clause_to_algebra_with_break({clause, _Meta, Head, empty, Body}, ForceBreak) ->
     if
         ForceBreak ->
             space(HeadD, nest(concat([<<"->">>, line(), BodyD]), ?INDENT));
+
         true ->
             space(HeadD, nest(break(<<"->">>, BodyD), ?INDENT))
     end;
@@ -1045,6 +1058,7 @@ clause_to_algebra_with_break({clause, _Meta, empty, Guards, Body}, ForceBreak) -
     if
         ForceBreak ->
             space(GuardsD, nest(concat([<<"->">>, line(), BodyD]), ?INDENT));
+
         true ->
             space(GuardsD, nest(break(<<"->">>, BodyD), ?INDENT))
     end;
@@ -1222,10 +1236,17 @@ combine_pre_comments(Comments, Meta, Doc) ->
         erlfmt_scan:get_end_line(lists:last(Comments)) + 1 <
             erlfmt_scan:get_inner_line(Meta)
     of
-        true when HasBanner -> concat(concat(concat(line(3), comments_to_algebra(Comments)), line(3)), Doc);
-        true -> concat(comments_to_algebra(Comments), concat(line(2), Doc));
-        false when HasBanner -> concat(concat(concat(line(3), comments_to_algebra(Comments)), line(3)), Doc);
-        false -> concat(comments_to_algebra(Comments), concat(line(), Doc))
+        true when HasBanner ->
+            concat(concat(concat(line(3), comments_to_algebra(Comments)), line(3)), Doc);
+
+        true ->
+            concat(comments_to_algebra(Comments), concat(line(2), Doc));
+
+        false when HasBanner ->
+            concat(concat(concat(line(3), comments_to_algebra(Comments)), line(3)), Doc);
+
+        false ->
+            concat(comments_to_algebra(Comments), concat(line(), Doc))
     end.
 
 combine_post_comments([], _Meta, Doc) ->
@@ -1234,10 +1255,17 @@ combine_post_comments([], _Meta, Doc) ->
 combine_post_comments([Comment | _] = Comments, Meta, Doc) ->
     HasBanner = lists:any(fun is_comment_banner/1, Comments),
     case erlfmt_scan:get_inner_end_line(Meta) + 1 < erlfmt_scan:get_line(Comment) of
-        true when HasBanner -> concat(concat(concat(Doc, line(3)), comments_to_algebra(Comments)), line(3));
-        true -> concat(Doc, concat(line(2), comments_to_algebra(Comments)));
-        false when HasBanner -> concat(concat(concat(Doc, line(3)), comments_to_algebra(Comments)), line(3));
-        false -> concat(Doc, concat(line(), comments_to_algebra(Comments)))
+        true when HasBanner ->
+            concat(concat(concat(Doc, line(3)), comments_to_algebra(Comments)), line(3));
+
+        true ->
+            concat(Doc, concat(line(2), comments_to_algebra(Comments)));
+
+        false when HasBanner ->
+            concat(concat(concat(Doc, line(3)), comments_to_algebra(Comments)), line(3));
+
+        false ->
+            concat(Doc, concat(line(), comments_to_algebra(Comments)))
     end.
 
 comments_to_algebra(Comments) ->
@@ -1248,10 +1276,16 @@ comment_to_algebra({comment, _Meta, Lines}) ->
     LinesD = lists:map(fun erlfmt_algebra:string/1, Lines),
     fold_doc(fun erlfmt_algebra:line/2, LinesD).
 
+
+
+
 %% Detect comment banners (section dividers with === patterns)
+
+
 is_comment_banner({comment, _Meta, [Line]}) ->
     %% Single-line comments that contain at least 3 consecutive = characters
     string:find(Line, "===") =/= nomatch;
+
 is_comment_banner({comment, _Meta, Lines}) ->
     %% Multi-line comments where any line contains at least 3 consecutive = characters
     lists:any(fun(Line) -> string:find(Line, "===") =/= nomatch end, Lines).
